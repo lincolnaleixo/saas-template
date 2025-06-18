@@ -1,0 +1,277 @@
+# Development Docker Compose Configuration
+# ========================================
+#
+# This file defines all services for local development with hot-reload enabled
+# All services use the ${PROJECT_NAME} prefix for container naming
+#
+# Services included:
+# - frontend: Next.js 15 with hot-reload
+# - api: Backend API with tRPC and hot-reload
+# - db: PostgreSQL 16 database
+# - redis: Redis 7 for caching and job queues
+# - scheduler: BullMQ worker for background jobs
+# - bullboard: Web UI for monitoring job queues
+#
+# Usage:
+#   ./scripts/dev.sh
+#
+# All configuration comes from .env.local
+
+
+services:
+  # Frontend - Next.js 15 Application
+  frontend:
+    container_name: ${PROJECT_NAME}-frontend
+    build:
+      context: ../
+      dockerfile: ./infra/docker/frontend.dev.Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:${API_PORT:-8000}
+    volumes:
+      # Mount source code for hot-reload
+      - ../app:/app/app
+      - ../src:/app/src
+      - ../public:/app/public
+      - ../components:/app/components
+      - ../hooks:/app/hooks
+      - ../lib:/app/lib
+      - ../package.json:/app/package.json
+      - ../tsconfig.json:/app/tsconfig.json
+      - ../next.config.ts:/app/next.config.ts
+      - ../tailwind.config.ts:/app/tailwind.config.ts
+      - ../postcss.config.mjs:/app/postcss.config.mjs
+      - ../components.json:/app/components.json
+      # Use named volume for .next to persist build cache
+      - frontend_next:/app/.next
+    depends_on:
+      - api
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command: bun run dev
+
+  # API - Backend with tRPC
+  api:
+    container_name: ${PROJECT_NAME}-api
+    build:
+      context: ../
+      dockerfile: ./infra/docker/api.dev.Dockerfile
+    ports:
+      - "${API_PORT:-8000}:${API_PORT:-8000}"
+    environment:
+      - NODE_ENV=development
+      - PORT=${API_PORT:-8000}
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@${PROJECT_NAME}-db:5432/${DB_NAME:-${PROJECT_NAME}}
+      - REDIS_URL=redis://${PROJECT_NAME}-redis:6379
+      - AUTH_SECRET=${AUTH_SECRET}
+    volumes:
+      # Mount source code for hot-reload
+      - ../src:/app/src
+      - ../package.json:/app/package.json
+      - ../tsconfig.json:/app/tsconfig.json
+      - ../drizzle.config.ts:/app/drizzle.config.ts
+      # Named volume for node_modules
+      - api_node_modules:/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command: bun run dev:api
+
+  # Database - PostgreSQL 16
+  db:
+    container_name: ${PROJECT_NAME}-db
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${DB_NAME:-${PROJECT_NAME}}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      # Persist database data
+      - db_data:/var/lib/postgresql/data
+      # Custom PostgreSQL configuration
+      - ./config/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    networks:
+      - app-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-${PROJECT_NAME}}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis - Cache and Job Queue
+  redis:
+    container_name: ${PROJECT_NAME}-redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      # Persist Redis data
+      - redis_data:/data
+      # Custom Redis configuration
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command: redis-server /usr/local/etc/redis/redis.conf
+
+  # Scheduler - Background Job Worker
+  scheduler:
+    container_name: ${PROJECT_NAME}-scheduler
+    build:
+      context: ../
+      dockerfile: ./infra/docker/scheduler.dev.Dockerfile
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@${PROJECT_NAME}-db:5432/${DB_NAME:-${PROJECT_NAME}}
+      - REDIS_URL=redis://${PROJECT_NAME}-redis:6379
+    volumes:
+      # Mount source code for hot-reload
+      - ../src:/app/src
+      - ../worker:/app/worker
+      - ../package.json:/app/package.json
+      - ../tsconfig.json:/app/tsconfig.json
+      # Named volume for node_modules
+      - scheduler_node_modules:/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command: bun run dev:worker
+
+  # Bull Board - Job Queue Monitoring UI
+  bullboard:
+    container_name: ${PROJECT_NAME}-bullboard
+    build:
+      context: ../
+      dockerfile: ./infra/docker/bullboard.Dockerfile
+    ports:
+      - "${BULL_BOARD_PORT:-3001}:3001"
+    environment:
+      - REDIS_URL=redis://${PROJECT_NAME}-redis:6379
+      - PORT=3001
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # pgAdmin - PostgreSQL GUI (optional, comment out if not needed)
+  pgadmin:
+    container_name: ${PROJECT_NAME}-pgadmin
+    image: dpage/pgadmin4:latest
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@${PROJECT_NAME}.local
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # RedisInsight - Redis GUI (optional, comment out if not needed)
+  redisinsight:
+    container_name: ${PROJECT_NAME}-redisinsight
+    image: redislabs/redisinsight:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - redisinsight_data:/db
+    depends_on:
+      - redis
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Networks
+networks:
+  app-network:
+    driver: bridge
+    name: ${PROJECT_NAME}-network
+
+# Volumes
+volumes:
+  # Database
+  db_data:
+    name: ${PROJECT_NAME}-db-data
+
+  # Redis
+  redis_data:
+    name: ${PROJECT_NAME}-redis-data
+
+  # Build cache volumes
+  frontend_next:
+    name: ${PROJECT_NAME}-frontend-next
+  api_node_modules:
+    name: ${PROJECT_NAME}-api-modules
+  scheduler_node_modules:
+    name: ${PROJECT_NAME}-scheduler-modules
+
+  # GUI tools
+  pgadmin_data:
+    name: ${PROJECT_NAME}-pgadmin-data
+  redisinsight_data:
+    name: ${PROJECT_NAME}-redisinsight-data

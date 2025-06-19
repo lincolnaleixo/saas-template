@@ -116,6 +116,13 @@ For development workflows and operational procedures, see `workflow.md`.
 
 ### ALWAYS FOLLOW THESE RULES:
 
+0. **USE PATH ALIASES** - Always use the configured path aliases instead of relative imports:
+   - `@auth/*` for auth module imports
+   - `@users/*` for users module imports
+   - `@posts/*` for posts module imports
+   - `@shared/*` for shared components
+   - `@/*` for general src imports
+
 1. **NO MOCK DATA** - Never use mock or fake data unless explicitly asked. Always implement with real data sources.
 
 2. **NO SIMULATED FEATURES** - Never simulate or fake functionality. Implement real, working features.
@@ -153,16 +160,6 @@ For development workflows and operational procedures, see `workflow.md`.
 project-root/
 ├── src/
 │   ├── app/                              # Next.js App Router
-│   │   ├── (auth)/                       # Authenticated routes group
-│   │   │   ├── layout.tsx
-│   │   │   ├── dashboard/
-│   │   │   │   ├── page.tsx
-│   │   │   │   ├── loading.tsx
-│   │   │   │   └── error.tsx
-│   │   │   ├── profile/
-│   │   │   │   └── page.tsx
-│   │   │   └── settings/
-│   │   │       └── page.tsx
 │   │   ├── (marketing)/                  # Public routes group
 │   │   │   ├── layout.tsx
 │   │   │   ├── page.tsx                  # Home page
@@ -170,6 +167,57 @@ project-root/
 │   │   │   │   └── page.tsx
 │   │   │   └── pricing/
 │   │   │       └── page.tsx
+│   │   ├── (modules)/                    # Feature modules routes
+│   │   │   ├── auth/
+│   │   │   │   ├── _module/              # Auth module internals
+│   │   │   │   │   ├── components/
+│   │   │   │   │   │   ├── AuthProvider.client.tsx
+│   │   │   │   │   │   ├── SignupForm.client.tsx
+│   │   │   │   │   │   └── LoginForm.client.tsx
+│   │   │   │   │   ├── hooks/
+│   │   │   │   │   │   └── use-auth.ts
+│   │   │   │   │   ├── server/
+│   │   │   │   │   │   ├── auth.service.ts
+│   │   │   │   │   │   └── auth.router.ts
+│   │   │   │   │   └── types/
+│   │   │   │   │       └── auth.types.ts
+│   │   │   │   ├── dashboard/
+│   │   │   │   │   ├── page.tsx
+│   │   │   │   │   ├── loading.tsx
+│   │   │   │   │   └── error.tsx
+│   │   │   │   ├── profile/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── settings/
+│   │   │   │       └── page.tsx
+│   │   │   ├── users/
+│   │   │   │   ├── _module/              # Users module internals
+│   │   │   │   │   ├── components/
+│   │   │   │   │   │   ├── UserList.tsx
+│   │   │   │   │   │   ├── UserCard.tsx
+│   │   │   │   │   │   └── UserActions.client.tsx
+│   │   │   │   │   ├── hooks/
+│   │   │   │   │   │   └── use-users.ts
+│   │   │   │   │   ├── server/
+│   │   │   │   │   │   ├── users.service.ts
+│   │   │   │   │   │   └── users.router.ts
+│   │   │   │   │   └── types/
+│   │   │   │   │       └── user.types.ts
+│   │   │   │   └── page.tsx             # Users list page
+│   │   │   └── posts/
+│   │   │       ├── _module/              # Posts module internals
+│   │   │       │   ├── components/
+│   │   │       │   │   ├── PostList.tsx
+│   │   │       │   │   ├── PostDetail.tsx
+│   │   │       │   │   ├── PostEditor.client.tsx
+│   │   │       │   │   └── CommentSection.client.tsx
+│   │   │       │   ├── hooks/
+│   │   │       │   │   └── use-posts.ts
+│   │   │       │   ├── server/
+│   │   │       │   │   ├── posts.service.ts
+│   │   │       │   │   └── posts.router.ts
+│   │   │       │   └── types/
+│   │   │       │       └── post.types.ts
+│   │   │       └── page.tsx             # Posts list page
 │   │   ├── api/
 │   │   │   └── trpc/
 │   │   │       └── [trpc]/
@@ -181,47 +229,6 @@ project-root/
 │   │   ├── robots.ts
 │   │   ├── sitemap.ts
 │   │   └── opengraph-image.tsx
-│   │
-│   ├── features/                         # Feature-based modules
-│   │   ├── auth/
-│   │   │   ├── components/
-│   │   │   │   ├── login-form.tsx        # Client component
-│   │   │   │   ├── signup-form.tsx       # Client component
-│   │   │   │   └── auth-provider.tsx     # Client component
-│   │   │   ├── hooks/
-│   │   │   │   └── use-auth.ts
-│   │   │   ├── server/
-│   │   │   │   ├── auth.service.ts
-│   │   │   │   └── auth.router.ts        # tRPC router
-│   │   │   └── types/
-│   │   │       └── auth.types.ts
-│   │   │
-│   │   ├── users/
-│   │   │   ├── components/
-│   │   │   │   ├── user-list.tsx         # Server component
-│   │   │   │   ├── user-card.tsx         # Server component
-│   │   │   │   └── user-actions.tsx      # Client component
-│   │   │   ├── hooks/
-│   │   │   │   └── use-users.ts
-│   │   │   ├── server/
-│   │   │   │   ├── users.service.ts
-│   │   │   │   └── users.router.ts       # tRPC router
-│   │   │   └── types/
-│   │   │       └── user.types.ts
-│   │   │
-│   │   └── posts/
-│   │       ├── components/
-│   │       │   ├── post-list.tsx         # Server component
-│   │       │   ├── post-detail.tsx       # Server component
-│   │       │   ├── post-editor.tsx       # Client component
-│   │       │   └── comment-section.tsx   # Client component
-│   │       ├── hooks/
-│   │       │   └── use-posts.ts
-│   │       ├── server/
-│   │       │   ├── posts.service.ts
-│   │       │   └── posts.router.ts       # tRPC router
-│   │       └── types/
-│   │           └── post.types.ts
 │   │
 │   ├── components/                       # Shared/global components
 │   │   ├── ui/                          # Primitive UI components
@@ -338,8 +345,9 @@ project-root/
 
 ```typescript
 // Server Component (default)
-// src/features/posts/components/post-list.tsx
+// src/app/(modules)/posts/_module/components/PostList.tsx
 import { db } from '@/server/db';
+import { PostCard } from './PostCard';
 
 export async function PostList() {
   const posts = await db.query.posts.findMany();
@@ -355,7 +363,7 @@ export async function PostList() {
 
 ```typescript
 // Client Component
-// src/features/posts/components/post-editor.tsx
+// src/app/(modules)/posts/_module/components/PostEditor.client.tsx
 "use client";
 
 import { useState } from 'react';
@@ -377,13 +385,43 @@ export function PostEditor() {
 }
 ```
 
-### 3. Feature-Based Organization
+### 3. Feature-Based Organization with Path Aliases
 
-Each feature is self-contained with its own:
+Each feature module is self-contained within `src/app/(modules)/[module]/_module/` with its own:
 - **components/**: UI components (both server and client)
 - **hooks/**: Feature-specific React hooks
 - **server/**: Backend logic (services and tRPC routers)
 - **types/**: TypeScript types for the feature
+
+**Path Aliases Configuration:**
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@modules/*": ["src/modules/*"],
+      "@auth/*": ["src/app/(modules)/auth/_module/*"],
+      "@users/*": ["src/app/(modules)/users/_module/*"],
+      "@posts/*": ["src/app/(modules)/posts/_module/*"],
+      "@shared/*": ["src/components/*"]
+    }
+  }
+}
+```
+
+**Import Examples:**
+```typescript
+// Instead of relative imports:
+import { AuthProvider } from '../../../auth/_module/components/AuthProvider.client';
+
+// Use path aliases:
+import { AuthProvider } from '@auth/components/AuthProvider.client';
+import { useUsers } from '@users/hooks/use-users';
+import { PostList } from '@posts/components/PostList';
+import { Button } from '@shared/ui/button';
+```
 
 ### 4. tRPC Integration
 
@@ -413,9 +451,9 @@ export const publicProcedure = t.procedure;
 ```typescript
 // src/server/api/root.ts
 import { createTRPCRouter } from './trpc';
-import { usersRouter } from '@/features/users/server/users.router';
-import { postsRouter } from '@/features/posts/server/posts.router';
-import { authRouter } from '@/features/auth/server/auth.router';
+import { usersRouter } from '@users/server/users.router';
+import { postsRouter } from '@posts/server/posts.router';
+import { authRouter } from '@auth/server/auth.router';
 
 export const appRouter = createTRPCRouter({
   users: usersRouter,
@@ -494,6 +532,13 @@ When creating new routes in Next.js 15:
    ```
    src/app/(shop)/products/page.tsx → /products
    src/app/(admin)/products/page.tsx → /products
+   ```
+
+4. **Module Routes**: For feature modules
+   ```
+   src/app/(modules)/auth/profile/page.tsx → /auth/profile
+   src/app/(modules)/users/page.tsx → /users
+   src/app/(modules)/posts/[id]/page.tsx → /posts/123
    ```
 
 4. **API Routes**: Always through tRPC

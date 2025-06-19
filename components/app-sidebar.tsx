@@ -35,11 +35,6 @@ import {
 import { useAuth } from "@/components/auth/auth-provider"
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -152,13 +147,19 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   
-  const userData = user ? {
+  // Don't show any user data while loading
+  const userData = !isLoading && user ? {
     name: user.name || 'User',
     email: user.email,
     avatar: user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
-  } : data.user;
+  } : {
+    name: '',
+    email: '',
+    avatar: '',
+    isLoading: isLoading
+  };
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>

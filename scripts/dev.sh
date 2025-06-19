@@ -26,7 +26,10 @@ set -euo pipefail
 # Load environment variables from .env.local
 # This file should never be committed to git
 if [ -f .env.local ]; then
-    export $(cat .env.local | grep -v '^#' | xargs)
+    # Use a more robust method to export environment variables
+    set -a  # automatically export all variables
+    source .env.local
+    set +a  # turn off automatic export
     echo "✓ Loaded configuration from .env.local"
 else
     echo "⚠️  Warning: .env.local not found, using default values"

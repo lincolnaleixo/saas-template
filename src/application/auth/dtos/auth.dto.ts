@@ -20,7 +20,7 @@ export interface UserDto {
   id: string;
   email: string;
   name: string;
-  isEmailVerified: boolean;
+  avatarUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -1,86 +1,71 @@
-import { eq } from 'drizzle-orm';
 import { db } from '@/lib/drizzle';
-import { users } from '@/server/db/schema';
-import { User } from '@domain/auth/entities/user.entity';
+import { users } from '../drizzle/schema/auth.schema';
+import { eq } from 'drizzle-orm';
 import { UserRepository } from '@domain/auth/repositories/user.repository';
-import { UserMapper } from '@application/auth/mappers/user.mapper';
+import { User } from '@domain/auth/entities/user.entity';
+import { Email } from '@domain/auth/value-objects/email.vo';
 
-/**
- * Drizzle User Repository Implementation
- * Concrete implementation of UserRepository using Drizzle ORM
- */
-export class DrizzleUserRepository implements UserRepository {
-  async save(user: User): Promise<void> {
-    const data = UserMapper.toPersistence(user);
+export class UserRepositoryImpl implements UserRepository {
+  async findById(id: string): Promise<User | null> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+
+    if (!result || result.length === 0) return null;
     
+    const [user] = result;
+
+    return new User(
+      user.id,
+      new Email(user.email),
+      user.name,
+      user.avatarUrl,
+      user.createdAt,
+      user.updatedAt
+    );
+  }
+
+  async findByEmail(email: Email): Promise<User | null> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email.getValue()))
+      .limit(1);
+
+    if (!result || result.length === 0) return null;
+    
+    const [user] = result;
+
+    return new User(
+      user.id,
+      new Email(user.email),
+      user.name,
+      user.avatarUrl,
+      user.createdAt,
+      user.updatedAt
+    );
+  }
+
+  async save(user: User): Promise<void> {
     await db.insert(users)
       .values({
-        id: data.id,
-        email: data.email,
-        password: data.passwordHash,
-        name: data.name,
-        emailVerified: data.isEmailVerified ? new Date() : null,
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
+        id: user.getId(),
+        email: user.getEmail(),
+        name: user.getName(),
+        avatarUrl: user.getAvatarUrl(),
+        createdAt: user.getCreatedAt(),
+        updatedAt: user.getUpdatedAt()
       })
       .onConflictDoUpdate({
         target: users.id,
         set: {
-          email: data.email,
-          password: data.passwordHash,
-          name: data.name,
-          emailVerified: data.isEmailVerified ? new Date() : null,
-          updatedAt: data.updatedAt,
-        },
+          email: user.getEmail(),
+          name: user.getName(),
+          avatarUrl: user.getAvatarUrl(),
+          updatedAt: user.getUpdatedAt()
+        }
       });
-  }
-
-  async findById(id: string): Promise<User | null> {
-    const result = await db.query.users.findFirst({
-      where: eq(users.id, id),
-    });
-
-    if (!result) return null;
-
-    return User.fromPersistence({
-      id: result.id,
-      email: result.email,
-      passwordHash: result.password,
-      name: result.name,
-      isEmailVerified: !!result.emailVerified,
-      createdAt: result.createdAt,
-      updatedAt: result.updatedAt,
-    });
-  }
-
-  async findByEmail(email: string): Promise<User | null> {
-    const result = await db.query.users.findFirst({
-      where: eq(users.email, email),
-    });
-
-    if (!result) return null;
-
-    return User.fromPersistence({
-      id: result.id,
-      email: result.email,
-      passwordHash: result.password,
-      name: result.name,
-      isEmailVerified: !!result.emailVerified,
-      createdAt: result.createdAt,
-      updatedAt: result.updatedAt,
-    });
-  }
-
-  async delete(id: string): Promise<void> {
-    await db.delete(users).where(eq(users.id, id));
-  }
-
-  async exists(email: string): Promise<boolean> {
-    const result = await db.query.users.findFirst({
-      where: eq(users.email, email),
-      columns: { id: true },
-    });
-
-    return !!result;
   }
 }

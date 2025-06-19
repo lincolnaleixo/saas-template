@@ -151,7 +151,7 @@ For development workflows and operational procedures, see `workflow.md`.
    - Redis connections and ports
    - Any Docker service ports
    - Credentials, API keys, or secrets
-   
+
    Always use environment variables:
    - ❌ WRONG: `host: 'localhost:5432'`
    - ❌ WRONG: `database: process.env.POSTGRES_DB || 'myapp'`
@@ -176,9 +176,7 @@ For development workflows and operational procedures, see `workflow.md`.
 
 ## Folder Convention - Domain Driven Design (DDD)
 
-### Recommended New Structure (DDD)
-
-The structure below follows Domain Driven Design principles, organizing code in well-defined layers. This is the recommended structure for new features:
+The structure below follows Domain Driven Design principles, organizing code in well-defined layers. This is the recommended structure:
 
 ```
 project-root/
@@ -264,172 +262,6 @@ project-root/
 └── components/                          # Shared UI components
     ├── ui/
     └── layout/
-```
-
-### Current Structure (Maintain Compatibility)
-
-```
-project-root/
-├── src/
-│   ├── app/                              # Next.js App Router
-│   │   ├── (marketing)/                  # Public routes group
-│   │   │   ├── layout.tsx
-│   │   │   ├── page.tsx                  # Home page
-│   │   │   ├── about/
-│   │   │   │   └── page.tsx
-│   │   │   └── pricing/
-│   │   │       └── page.tsx
-│   │   ├── (modules)/                    # Feature modules routes
-│   │   │   ├── auth/
-│   │   │   │   ├── _module/              # Auth module internals
-│   │   │   │   │   ├── components/
-│   │   │   │   │   │   ├── AuthProvider.client.tsx
-│   │   │   │   │   │   ├── SignupForm.client.tsx
-│   │   │   │   │   │   └── LoginForm.client.tsx
-│   │   │   │   │   ├── hooks/
-│   │   │   │   │   │   └── use-auth.ts
-│   │   │   │   │   ├── server/
-│   │   │   │   │   │   ├── auth.service.ts
-│   │   │   │   │   │   └── auth.router.ts
-│   │   │   │   │   └── types/
-│   │   │   │   │       └── auth.types.ts
-│   │   │   │   ├── dashboard/
-│   │   │   │   │   ├── page.tsx
-│   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   └── error.tsx
-│   │   │   │   ├── profile/
-│   │   │   │   │   └── page.tsx
-│   │   │   │   └── settings/
-│   │   │   │       └── page.tsx
-│   │   │   ├── users/
-│   │   │   │   ├── _module/              # Users module internals
-│   │   │   │   │   ├── components/
-│   │   │   │   │   │   ├── UserList.tsx
-│   │   │   │   │   │   ├── UserCard.tsx
-│   │   │   │   │   │   └── UserActions.client.tsx
-│   │   │   │   │   ├── hooks/
-│   │   │   │   │   │   └── use-users.ts
-│   │   │   │   │   ├── server/
-│   │   │   │   │   │   ├── users.service.ts
-│   │   │   │   │   │   └── users.router.ts
-│   │   │   │   │   └── types/
-│   │   │   │   │       └── user.types.ts
-│   │   │   │   └── page.tsx             # Users list page
-│   │   │   └── posts/
-│   │   │       ├── _module/              # Posts module internals
-│   │   │       │   ├── components/
-│   │   │       │   │   ├── PostList.tsx
-│   │   │       │   │   ├── PostDetail.tsx
-│   │   │       │   │   ├── PostEditor.client.tsx
-│   │   │       │   │   └── CommentSection.client.tsx
-│   │   │       │   ├── hooks/
-│   │   │       │   │   └── use-posts.ts
-│   │   │       │   ├── server/
-│   │   │       │   │   ├── posts.service.ts
-│   │   │       │   │   └── posts.router.ts
-│   │   │       │   └── types/
-│   │   │       │       └── post.types.ts
-│   │   │       └── page.tsx             # Posts list page
-│   │   ├── api/
-│   │   │   └── trpc/
-│   │   │       └── [trpc]/
-│   │   │           └── route.ts          # tRPC HTTP handler
-│   │   ├── layout.tsx                    # Root layout
-│   │   ├── error.tsx                     # Global error boundary
-│   │   ├── loading.tsx                   # Global loading state
-│   │   ├── not-found.tsx                 # 404 page
-│   │   ├── robots.ts
-│   │   ├── sitemap.ts
-│   │   └── opengraph-image.tsx
-│   │
-│   ├── components/                       # Shared/global components
-│   │   ├── ui/                          # Primitive UI components
-│   │   │   ├── button.tsx
-│   │   │   ├── card.tsx
-│   │   │   ├── dialog.tsx
-│   │   │   ├── dropdown.tsx
-│   │   │   ├── input.tsx
-│   │   │   └── toast.tsx
-│   │   ├── layout/                      # Layout components
-│   │   │   ├── header.tsx               # Server component
-│   │   │   ├── footer.tsx               # Server component
-│   │   │   ├── nav-menu.tsx             # Client component
-│   │   │   └── sidebar.tsx              # Client component
-│   │   └── common/                      # Common components
-│   │       ├── loading-spinner.tsx
-│   │       ├── error-boundary.tsx
-│   │       └── seo-meta.tsx
-│   │
-│   ├── server/                          # Server-side code
-│   │   ├── api/
-│   │   │   ├── root.ts                  # Root tRPC router
-│   │   │   └── trpc.ts                  # tRPC instance & context
-│   │   ├── db/
-│   │   │   ├── index.ts                 # Database connection
-│   │   │   ├── schema/                  # Drizzle schemas
-│   │   │   │   ├── auth.schema.ts
-│   │   │   │   ├── users.schema.ts
-│   │   │   │   ├── posts.schema.ts
-│   │   │   │   └── index.ts             # Export all schemas
-│   │   │   └── migrations/              # Generated by Drizzle
-│   │   └── services/                    # Shared services
-│   │       ├── email.service.ts
-│   │       └── storage.service.ts
-│   │
-│   ├── lib/                             # Third-party library configs
-│   │   ├── trpc/
-│   │   │   ├── client.ts                # tRPC client
-│   │   │   └── server.ts                # Server-side tRPC helpers
-│   │   ├── drizzle.ts                   # Drizzle client export
-│   │   └── utils.ts                     # Utility functions
-│   │
-│   ├── hooks/                           # Global React hooks
-│   │   ├── use-media-query.ts
-│   │   ├── use-local-storage.ts
-│   │   └── use-debounce.ts
-│   │
-│   ├── types/                           # Global TypeScript types
-│   │   ├── global.d.ts
-│   │   ├── env.d.ts
-│   │   └── api.types.ts
-│   │
-│   ├── styles/                          # Global styles
-│   │   ├── globals.css
-│   │   └── variables.css
-│   │
-│   ├── utils/                           # Utility functions
-│   │   ├── cn.ts                        # Class name helper
-│   │   ├── formatters.ts
-│   │   ├── validators.ts
-│   │   └── constants.ts
-│   │
-│   └── middleware.ts                    # Next.js middleware
-│
-├── public/                              # Static assets
-│   ├── images/
-│   ├── fonts/
-│   └── icons/
-│
-├── scripts/                      # Build/deployment scripts
-│   ├── git.ts
-│   ├── dev.sh
-│   └── prod.sh
-│
-├── drizzle/                             # Drizzle generated files
-│   └── migrations/
-│
-├── .env.example
-├── .env.local
-├── .eslintrc.json
-├── .gitignore
-├── .prettierrc
-├── drizzle.config.ts
-├── next-env.d.ts
-├── next.config.js
-├── package.json
-├── README.md
-├── tailwind.config.ts
-└── tsconfig.json
 ```
 
 ## Key Concepts and Best Practices
@@ -743,10 +575,10 @@ export class CreateUserUseCase {
   async execute(dto: CreateUserDto): Promise<UserDto> {
     // Validations and application rules
     const user = User.create(dto);
-    
+
     // Persist through repository
     await this.userRepository.save(user);
-    
+
     // Return DTO
     return UserMapper.toDto(user);
   }
@@ -772,7 +604,7 @@ export class DrizzleUserRepository implements UserRepository {
     const result = await db.query.users.findFirst({
       where: eq(users.id, id)
     });
-    
+
     return result ? UserMapper.toDomain(result) : null;
   }
 }
@@ -922,7 +754,7 @@ docker-compose --env-file .env.project2 up -d
    ```typescript
    // ❌ WRONG
    const apiUrl = process.env.API_URL || 'http://localhost:8000';
-   
+
    // ✅ CORRECT
    const apiUrl = process.env.API_URL;
    if (!apiUrl) {
@@ -939,7 +771,7 @@ docker-compose --env-file .env.project2 up -d
      'API_PORT',
      'AUTH_SECRET'
    ];
-   
+
    for (const envVar of requiredEnvVars) {
      if (!process.env[envVar]) {
        throw new Error(`Missing required environment variable: ${envVar}`);

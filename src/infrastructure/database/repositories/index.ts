@@ -1,7 +1,5 @@
-import { DrizzleUserRepository } from './user.repository.impl';
+import { UserRepositoryImpl } from './user.repository.impl';
+import { OAuthAccountRepositoryImpl } from './oauth-account.repository.impl';
 
-// Export singleton instances
-export const userRepository = new DrizzleUserRepository();
-
-// Export for dependency injection if needed
-export { DrizzleUserRepository };
+export const userRepository = new UserRepositoryImpl();
+export const oauthAccountRepository = new OAuthAccountRepositoryImpl();

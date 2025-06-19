@@ -11,7 +11,7 @@ export class UserMapper {
       id: user.getId(),
       email: user.getEmail(),
       name: user.getName(),
-      isEmailVerified: user.getIsEmailVerified(),
+      avatarUrl: user.getAvatarUrl(),
       createdAt: user.getCreatedAt(),
       updatedAt: user.getUpdatedAt(),
     };
@@ -21,9 +21,8 @@ export class UserMapper {
     return {
       id: user.getId(),
       email: user.getEmail(),
-      passwordHash: user.getPasswordHash(),
       name: user.getName(),
-      isEmailVerified: user.getIsEmailVerified(),
+      avatarUrl: user.getAvatarUrl(),
       createdAt: user.getCreatedAt(),
       updatedAt: user.getUpdatedAt(),
     };

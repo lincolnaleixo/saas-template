@@ -1,37 +1,33 @@
 import { Email } from '../value-objects/email.vo';
-import { Password } from '../value-objects/password.vo';
 
 /**
  * User Entity
  * Core user domain entity with business rules
  */
 export class User {
-  private constructor(
+  constructor(
     private readonly id: string,
     private email: Email,
-    private password: Password,
     private name: string,
-    private isEmailVerified: boolean,
+    private avatarUrl: string | null,
     private readonly createdAt: Date,
     private updatedAt: Date
   ) {}
 
-  static async create(params: {
+  static create(params: {
+    id: string;
     email: string;
-    password: string;
     name: string;
-  }): Promise<User> {
-    const id = crypto.randomUUID();
+    avatarUrl?: string | null;
+  }): User {
     const email = new Email(params.email);
-    const password = await Password.create(params.password);
     const now = new Date();
 
     return new User(
-      id,
+      params.id,
       email,
-      password,
       params.name,
-      false, // Email not verified by default
+      params.avatarUrl || null,
       now,
       now
     );
@@ -40,41 +36,37 @@ export class User {
   static fromPersistence(params: {
     id: string;
     email: string;
-    passwordHash: string;
     name: string;
-    isEmailVerified: boolean;
+    avatarUrl: string | null;
     createdAt: Date;
     updatedAt: Date;
   }): User {
     return new User(
       params.id,
       new Email(params.email),
-      Password.fromHash(params.passwordHash),
       params.name,
-      params.isEmailVerified,
+      params.avatarUrl,
       params.createdAt,
       params.updatedAt
     );
   }
 
   // Business methods
-  async verifyPassword(plainPassword: string): Promise<boolean> {
-    return this.password.verify(plainPassword);
-  }
-
   changeEmail(newEmail: Email): void {
     this.email = newEmail;
-    this.isEmailVerified = false; // Reset verification on email change
     this.updatedAt = new Date();
   }
 
-  async changePassword(newPassword: string): Promise<void> {
-    this.password = await Password.create(newPassword);
+  changeName(newName: string): void {
+    if (!newName || newName.trim().length === 0) {
+      throw new Error('Name cannot be empty');
+    }
+    this.name = newName;
     this.updatedAt = new Date();
   }
 
-  verifyEmail(): void {
-    this.isEmailVerified = true;
+  changeAvatarUrl(newAvatarUrl: string | null): void {
+    this.avatarUrl = newAvatarUrl;
     this.updatedAt = new Date();
   }
 
@@ -82,8 +74,7 @@ export class User {
   getId(): string { return this.id; }
   getEmail(): string { return this.email.getValue(); }
   getName(): string { return this.name; }
-  getPasswordHash(): string { return this.password.getHashedValue(); }
-  getIsEmailVerified(): boolean { return this.isEmailVerified; }
+  getAvatarUrl(): string | null { return this.avatarUrl; }
   getCreatedAt(): Date { return this.createdAt; }
   getUpdatedAt(): Date { return this.updatedAt; }
 }

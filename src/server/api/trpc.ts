@@ -5,12 +5,12 @@
  */
 
 import { initTRPC, TRPCError } from '@trpc/server';
-import { type CreateNextContextOptions } from '@trpc/server/adapters/next';
 import { type Session } from 'lucia';
 import superjson from 'superjson';
 import { ZodError } from 'zod';
 import { db } from '@/lib/drizzle';
 import { validateRequest } from '@/lib/auth';
+import { NextRequest } from 'next/server';
 
 /**
  * 1. CONTEXT
@@ -43,12 +43,12 @@ export const createInnerTRPCContext = (opts: CreateContextOptions) => {
  * This is the actual context you will use in your router. It will be used to process every request
  * that goes through your tRPC endpoint.
  */
-export const createTRPCContext = async (opts: CreateNextContextOptions) => {
+export const createTRPCContext = async (opts: { req: NextRequest }) => {
   const { session } = await validateRequest();
 
   return createInnerTRPCContext({
     session,
-    headers: opts.headers,
+    headers: opts.req.headers,
   });
 };
 

@@ -30,6 +30,12 @@ services:
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_API_URL=http://localhost:${API_PORT:-8000}
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@${PROJECT_NAME}-db:5432/${DB_NAME:-${PROJECT_NAME}}
+      - AUTH_SECRET=${AUTH_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:3000/api/auth/callback/google}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
     volumes:
       # Mount source code for hot-reload
       - ../app:/app/app
@@ -38,6 +44,7 @@ services:
       - ../components:/app/components
       - ../hooks:/app/hooks
       - ../lib:/app/lib
+      - ../middleware.ts:/app/middleware.ts
       - ../package.json:/app/package.json
       - ../tsconfig.json:/app/tsconfig.json
       - ../next.config.ts:/app/next.config.ts

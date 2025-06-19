@@ -1,9 +1,11 @@
-import { createTRPCRouter, publicProcedure } from '@/server/api/trpc';
+import { createTRPCRouter, publicProcedure } from '../../../../server/api/trpc';
 import { loginInputSchema, registerInputSchema } from '@application/auth/dtos/auth.dto';
 import { LoginUseCase } from '@application/auth/use-cases/login.use-case';
 import { RegisterUseCase } from '@application/auth/use-cases/register.use-case';
 import { userRepository } from '@infrastructure/database/repositories';
 import { lucia } from '@/lib/auth';
+import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 
 /**
  * Auth tRPC Router
@@ -71,7 +73,62 @@ export const authRouter = createTRPCRouter({
         id: user.getId(),
         email: user.getEmail(),
         name: user.getName(),
-        isEmailVerified: user.getIsEmailVerified(),
+        avatarUrl: user.getAvatarUrl(),
       };
+    }),
+
+  getOAuthAccounts: publicProcedure
+    .query(async ({ ctx }) => {
+      if (!ctx.session?.userId) {
+        return [];
+      }
+
+      const { oauthAccountRepository } = await import('@infrastructure/database/repositories');
+      const accounts = await oauthAccountRepository.findByUserId(ctx.session.userId);
+
+      return accounts.map(account => ({
+        id: account.getId(),
+        provider: account.getProvider(),
+        createdAt: account.getCreatedAt(),
+      }));
+    }),
+
+  unlinkOAuthAccount: publicProcedure
+    .input(z.object({ provider: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.session?.userId) {
+        throw new TRPCError({ code: 'UNAUTHORIZED' });
+      }
+
+      const { oauthAccountRepository } = await import('@infrastructure/database/repositories');
+      const accounts = await oauthAccountRepository.findByUserId(ctx.session.userId);
+      
+      const accountToRemove = accounts.find(acc => acc.getProvider() === input.provider);
+      if (!accountToRemove) {
+        throw new TRPCError({ 
+          code: 'NOT_FOUND',
+          message: 'OAuth account not found',
+        });
+      }
+
+      // Don't allow unlinking if it's the only auth method
+      const user = await userRepository.findById(ctx.session.userId);
+      if (!user) {
+        throw new TRPCError({ code: 'NOT_FOUND' });
+      }
+
+      // Check if user has a password (can sign in without OAuth)
+      // For now, we'll assume OAuth users have a random password
+      // In production, you might want to track this differently
+      if (accounts.length === 1) {
+        throw new TRPCError({ 
+          code: 'BAD_REQUEST',
+          message: 'Cannot unlink the only authentication method',
+        });
+      }
+
+      await oauthAccountRepository.delete(accountToRemove.getId());
+      
+      return { success: true };
     }),
 });

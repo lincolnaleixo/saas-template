@@ -3,6 +3,73 @@
 import { useState } from 'react';
 
 const API_ENDPOINTS = {
+  admin: {
+    listUsers: {
+      method: 'query',
+      path: '/api/trpc/admin.listUsers',
+      input: {
+        page: 'number (default: 1)',
+        limit: 'number (default: 20, max: 100)',
+        search: 'string (optional)',
+      },
+      output: {
+        users: 'Array of User objects',
+        pagination: 'Pagination info',
+      },
+    },
+    getUser: {
+      method: 'query',
+      path: '/api/trpc/admin.getUser',
+      input: {
+        userId: 'string (required)',
+      },
+      output: {
+        user: 'User object with OAuth accounts and session count',
+      },
+    },
+    updateUser: {
+      method: 'mutation',
+      path: '/api/trpc/admin.updateUser',
+      input: {
+        userId: 'string (required)',
+        data: {
+          name: 'string (optional)',
+          email: 'string (optional)',
+        },
+      },
+      output: 'Updated user object',
+    },
+    deleteUser: {
+      method: 'mutation',
+      path: '/api/trpc/admin.deleteUser',
+      input: {
+        userId: 'string (required)',
+      },
+      output: {
+        success: 'boolean',
+      },
+    },
+    revokeUserSessions: {
+      method: 'mutation',
+      path: '/api/trpc/admin.revokeUserSessions',
+      input: {
+        userId: 'string (required)',
+      },
+      output: {
+        success: 'boolean',
+      },
+    },
+    getStats: {
+      method: 'query',
+      path: '/api/trpc/admin.getStats',
+      input: 'none',
+      output: {
+        users: 'User statistics',
+        sessions: 'Session statistics',
+        oauth: 'OAuth statistics',
+      },
+    },
+  },
   auth: {
     register: {
       method: 'mutation',

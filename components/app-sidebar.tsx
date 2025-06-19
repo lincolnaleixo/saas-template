@@ -149,6 +149,10 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, isLoading } = useAuth();
   
+  // Check if user is admin
+  const isAdmin = user?.email && 
+    process.env.NEXT_PUBLIC_ADMIN_ACCESS_EMAILS?.split(',').map(e => e.trim()).includes(user.email);
+  
   // Don't show any user data while loading
   const userData = !isLoading && user ? {
     name: user.name || 'User',
@@ -160,6 +164,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     avatar: '',
     isLoading: isLoading
   };
+  
+  // Dynamic navigation based on user role
+  const navSecondary = [
+    {
+      title: "Settings",
+      url: "#",
+      icon: IconSettings,
+    },
+    {
+      title: "Get Help",
+      url: "#",
+      icon: IconHelp,
+    },
+    {
+      title: "Search",
+      url: "#",
+      icon: IconSearch,
+    },
+    ...(isAdmin ? [{
+      title: "Admin Panel",
+      url: "/admin",
+      icon: IconInnerShadowTop,
+    }] : []),
+  ];
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -181,7 +209,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={data.navMain} />
         <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={userData} />

@@ -1,0 +1,3 @@
+- criar um lugar (admin) onde eu vejo todos os usuarios da plataforma, posso deletar, editar funcionalidades etc e colocar mais usuarios para admin tambem
+- adicionar um sistema de jobs, onde vai executar baseado em cron/scheduler/worker (ou outra melhor tecnlogia).
+- adicionar 

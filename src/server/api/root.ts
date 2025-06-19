@@ -3,6 +3,8 @@ import { createTRPCRouter } from './trpc';
 import { authRouter } from '@infrastructure/http/trpc/routers/auth.router';
 // Example router for documentation
 import { exampleRouter } from './routers/example';
+// Admin router for user management
+import { adminRouter } from './routers/admin';
 // You can also import from bridge files for compatibility
 // import { authRouter } from './routers/auth';
 
@@ -14,6 +16,7 @@ import { exampleRouter } from './routers/example';
 export const appRouter = createTRPCRouter({
   auth: authRouter,
   example: exampleRouter, // Example endpoints for documentation
+  admin: adminRouter, // Admin panel endpoints
   // Add other routers here as you migrate them to DDD
   // users: usersRouter,
   // posts: postsRouter,

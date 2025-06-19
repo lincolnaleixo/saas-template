@@ -35,14 +35,24 @@ export class OAuthSignInUseCase {
         throw new Error('User not found for OAuth account');
       }
       user = existingUser;
+      // Update avatar URL if it changed
+      if (userInfo.picture && userInfo.picture !== user.getAvatarUrl()) {
+        user.changeAvatarUrl(userInfo.picture);
+        await this.userRepository.save(user);
+      }
     } else {
       // New OAuth account - check if user exists with this email
       const emailVO = new Email(userInfo.email);
       const existingUser = await this.userRepository.findByEmail(emailVO);
 
       if (existingUser) {
-        // User exists - link OAuth account
+        // User exists - link OAuth account and update avatar
         user = existingUser;
+        // Update avatar URL if it changed
+        if (userInfo.picture && userInfo.picture !== user.getAvatarUrl()) {
+          user.changeAvatarUrl(userInfo.picture);
+          await this.userRepository.save(user);
+        }
       } else {
         // Create new user
         const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;

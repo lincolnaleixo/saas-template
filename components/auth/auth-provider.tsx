@@ -7,7 +7,7 @@ interface User {
   id: string;
   email: string;
   name: string;
-  isEmailVerified: boolean;
+  avatarUrl: string | null;
 }
 
 interface AuthContextType {
@@ -36,7 +36,9 @@ export function AuthProvider({
       const response = await fetch('/api/trpc/auth.me');
       if (response.ok) {
         const data = await response.json();
-        setUser(data.result?.data || null);
+        // tRPC response format
+        const userData = data.result?.data?.json;
+        setUser(userData || null);
       } else {
         setUser(null);
       }

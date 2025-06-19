@@ -12,6 +12,7 @@ export function middleware(request: NextRequest) {
     path === '/login' || 
     path === '/register' ||
     path.startsWith('/api/auth/') ||
+    path === '/api-docs' || // Allow API documentation page
     path.startsWith('/_next/') ||
     path.includes('.'); // static files
   

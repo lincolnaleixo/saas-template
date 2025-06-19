@@ -289,21 +289,11 @@ async function createNewBranch(gitSummary: string): Promise<string> {
  *    - Automatically rotates old backups
  *    - Essential for data recovery
  * 
- * 2. check-migrations.ts - Validates database migrations
- *    - Detects schema changes
- *    - Auto-generates migration files
- *    - Ensures migrations are always in sync
+ * Other available scripts (not run automatically):
+ * - check-migrations.ts - Validates database migrations
+ * - validate-schema.ts - Validates Drizzle schemas
  * 
- * 3. validate-schema.ts - Validates Drizzle schemas
- *    - Checks schema syntax
- *    - Ensures Zod schemas exist
- *    - Validates TypeScript types
- * 
- * 4. generate-api-docs.ts - Updates API documentation
- *    - Regenerates OpenAPI spec from Zod schemas
- *    - Keeps docs in sync with code
- * 
- * All scripts are optional but highly recommended
+ * Scripts are optional but backups are highly recommended
  * If a script fails, user is prompted to continue or abort
  */
 async function executePreCommitScripts(): Promise<void> {
@@ -325,10 +315,8 @@ async function executePreCommitScripts(): Promise<void> {
 
   // Define scripts to run - check for multiple possible names
   const backupScriptNames = ['backup-sql.sh', 'backup-db.sh', 'backup.sh'];
-  const apiDocsScriptNames = ['generate-api-docs.ts', 'generate-docs.ts', 'api-docs.ts'];
 
   let backupScript = null;
-  let apiDocsScript = null;
 
   // Find backup script
   for (const scriptName of backupScriptNames) {
@@ -340,15 +328,6 @@ async function executePreCommitScripts(): Promise<void> {
     }
   }
 
-  // Find API docs script
-  for (const scriptName of apiDocsScriptNames) {
-    const scriptPath = path.join(scriptsDir, scriptName);
-    if (fs.existsSync(scriptPath)) {
-      apiDocsScript = scriptPath;
-      console.log(`✅ Found API docs script: ${scriptName}`);
-      break;
-    }
-  }
 
   // Run backup script if found
   if (backupScript) {
@@ -384,50 +363,6 @@ async function executePreCommitScripts(): Promise<void> {
     console.log('   Continuing without backup...');
   }
 
-  // Run API documentation script if found
-  if (apiDocsScript) {
-    console.log(`\n📚 Running ${path.basename(apiDocsScript)}...`);
-    try {
-      // Try to run with bun first, fallback to ts-node/node if not available
-      let apiDocsResult;
-      try {
-        apiDocsResult = await executeCommand(`bun run ${apiDocsScript}`);
-      } catch (bunError) {
-        console.log('   Bun not available, trying ts-node...');
-        try {
-          apiDocsResult = await executeCommand(`npx ts-node ${apiDocsScript}`);
-        } catch (tsNodeError) {
-          console.log('   ts-node not available, trying node...');
-          apiDocsResult = await executeCommand(`node ${apiDocsScript}`);
-        }
-      }
-
-      console.log('✅ API documentation generated successfully');
-      if (apiDocsResult) console.log(apiDocsResult);
-    } catch (e: any) {
-      console.log(`⚠️  API docs script failed: ${e.message}`);
-      const continueAnswer = await askQuestion('Continue without generating API docs? (y/n): ');
-      if (continueAnswer.toLowerCase() !== 'y') {
-        throw new Error('Process aborted by user');
-      }
-    }
-  } else {
-    console.log(`\n⚠️  Warning: No API documentation script found`);
-    console.log(`   Searched for: ${apiDocsScriptNames.join(', ')}`);
-    console.log(`   In directory: ${scriptsDir}`);
-
-    // List files in the directory to help debug
-    try {
-      const files = fs.readdirSync(scriptsDir).filter(f => f.endsWith('.ts'));
-      if (files.length > 0) {
-        console.log(`   Available .ts files: ${files.join(', ')}`);
-      }
-    } catch (e) {
-      // Directory might not exist
-    }
-
-    console.log('   Continuing without generating API documentation...');
-  }
 
   console.log('\n✅ Pre-commit scripts phase completed\n');
 }
@@ -439,14 +374,13 @@ async function executePreCommitScripts(): Promise<void> {
 /**
  * Main function that handles the complete git workflow:
  * 1. Checks for changes to commit
- * 2. Runs pre-commit scripts (backup, validation, docs)
+ * 2. Runs pre-commit scripts (backup)
  * 3. Creates smart branch based on changes (or commits to current branch)
  * 4. Generates AI-powered commit message
  * 5. Commits and pushes changes
  * 
  * The workflow ensures:
  * - Data safety (backups before commits)
- * - Code quality (validation scripts)
  * - Consistent commit messages (AI-generated)
  * - Smart branching strategy
  */

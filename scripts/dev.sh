@@ -77,6 +77,10 @@ sleep 3
 echo -e "\n${GREEN} Development environment is running!${NC}"
 docker compose -f "${COMPOSE_PATH}/${COMPOSE_FILE}" ps
 
+# Show access URLs
+echo -e "\n${BLUE}🚀 Application available at:${NC} http://localhost:3000"
+echo -e "${BLUE}📚 API Documentation:${NC} http://localhost:3000/api-docs"
+
 # Tail logs
 echo -e "\n${BLUE}=� Tailing logs for active services...${NC}"
 docker compose -f "${COMPOSE_PATH}/${COMPOSE_FILE}" logs -f ${SERVICES}

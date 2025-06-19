@@ -117,11 +117,19 @@ For development workflows and operational procedures, see `workflow.md`.
 ### ALWAYS FOLLOW THESE RULES:
 
 0. **USE PATH ALIASES** - Always use the configured path aliases instead of relative imports:
-   - `@auth/*` for auth module imports
-   - `@users/*` for users module imports
-   - `@posts/*` for posts module imports
-   - `@shared/*` for shared components
-   - `@/*` for general src imports
+   - **DDD Structure (Preferred for new code):**
+     - `@domain/*` for domain entities and business logic
+     - `@application/*` for use cases and DTOs
+     - `@infrastructure/*` for technical implementations
+     - `@presentation/*` for UI components in app/
+   - **Current Module Structure (Maintain compatibility):**
+     - `@auth/*` for auth module imports
+     - `@users/*` for users module imports
+     - `@posts/*` for posts module imports
+   - **Shared:**
+     - `@shared/*` for shared components
+     - `@ui/*` for UI primitives
+     - `@/*` for general imports
 
 1. **NO MOCK DATA** - Never use mock or fake data unless explicitly asked. Always implement with real data sources.
 
@@ -154,7 +162,99 @@ For development workflows and operational procedures, see `workflow.md`.
    - Use `bun install` for dependencies, NOT `npm install`
    - All scripts should have `#!/usr/bin/env bun` shebang
 
-## Folder Convention
+## Folder Convention - Domain Driven Design (DDD)
+
+### Nova Estrutura Recomendada (DDD)
+
+A estrutura abaixo segue os princípios do Domain Driven Design, organizando o código em camadas bem definidas. Esta é a estrutura recomendada para novos recursos:
+
+```
+project-root/
+├── src/
+│   ├── domain/                          # Camada de Domínio (Entidades, Value Objects, Regras de Negócio)
+│   │   ├── auth/
+│   │   │   ├── entities/
+│   │   │   │   ├── user.entity.ts       # Entidade User
+│   │   │   │   └── session.entity.ts    # Entidade Session
+│   │   │   ├── value-objects/
+│   │   │   │   ├── email.vo.ts          # Value Object Email
+│   │   │   │   └── password.vo.ts       # Value Object Password
+│   │   │   ├── repositories/
+│   │   │   │   └── user.repository.ts   # Interface do repositório
+│   │   │   ├── services/
+│   │   │   │   └── auth.domain-service.ts # Serviços de domínio
+│   │   │   └── events/
+│   │   │       └── user-created.event.ts # Eventos de domínio
+│   │   │
+│   │   ├── users/
+│   │   │   ├── entities/
+│   │   │   ├── value-objects/
+│   │   │   ├── repositories/
+│   │   │   └── services/
+│   │   │
+│   │   └── posts/
+│   │       ├── entities/
+│   │       ├── value-objects/
+│   │       ├── repositories/
+│   │       └── services/
+│   │
+│   ├── application/                     # Camada de Aplicação (Use Cases, DTOs)
+│   │   ├── auth/
+│   │   │   ├── use-cases/
+│   │   │   │   ├── login.use-case.ts
+│   │   │   │   ├── register.use-case.ts
+│   │   │   │   └── logout.use-case.ts
+│   │   │   ├── dtos/
+│   │   │   │   ├── login.dto.ts
+│   │   │   │   └── register.dto.ts
+│   │   │   └── mappers/
+│   │   │       └── user.mapper.ts
+│   │   │
+│   │   ├── users/
+│   │   │   ├── use-cases/
+│   │   │   ├── dtos/
+│   │   │   └── mappers/
+│   │   │
+│   │   └── posts/
+│   │       ├── use-cases/
+│   │       ├── dtos/
+│   │       └── mappers/
+│   │
+│   └── infrastructure/                  # Camada de Infraestrutura (Implementações concretas)
+│       ├── database/
+│       │   ├── drizzle/
+│       │   │   ├── schema/
+│       │   │   └── migrations/
+│       │   └── repositories/
+│       │       ├── user.repository.impl.ts
+│       │       └── post.repository.impl.ts
+│       ├── http/
+│       │   └── trpc/
+│       │       ├── routers/
+│       │       │   ├── auth.router.ts
+│       │       │   ├── users.router.ts
+│       │       │   └── posts.router.ts
+│       │       └── context.ts
+│       ├── cache/
+│       │   └── redis/
+│       └── queues/
+│           └── bullmq/
+│
+├── app/                                 # Camada de Apresentação (Next.js App Router)
+│   ├── (marketing)/
+│   ├── (modules)/                       # Módulos organizados por domínio
+│   │   ├── auth/
+│   │   ├── users/
+│   │   └── posts/
+│   └── api/
+│       └── trpc/
+│
+└── components/                          # Componentes de UI compartilhados
+    ├── ui/
+    └── layout/
+```
+
+### Estrutura Atual (Manter Compatibilidade)
 
 ```
 project-root/
@@ -385,43 +485,53 @@ export function PostEditor() {
 }
 ```
 
-### 3. Feature-Based Organization with Path Aliases
+### 3. Domain Driven Design Architecture
 
-Each feature module is self-contained within `src/app/(modules)/[module]/_module/` with its own:
-- **components/**: UI components (both server and client)
-- **hooks/**: Feature-specific React hooks
-- **server/**: Backend logic (services and tRPC routers)
-- **types/**: TypeScript types for the feature
+#### Camadas da Arquitetura
 
-**Path Aliases Configuration:**
-```json
-// tsconfig.json
-{
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@modules/*": ["src/modules/*"],
-      "@auth/*": ["src/app/(modules)/auth/_module/*"],
-      "@users/*": ["src/app/(modules)/users/_module/*"],
-      "@posts/*": ["src/app/(modules)/posts/_module/*"],
-      "@shared/*": ["src/components/*"]
-    }
-  }
-}
-```
+**1. Domain Layer (Domínio)**
+- Contém a lógica de negócio pura
+- Entidades, Value Objects, Domain Services
+- Interfaces de repositórios
+- Eventos de domínio
+- Não depende de nenhuma outra camada
 
-**Import Examples:**
+**2. Application Layer (Aplicação)**
+- Use Cases (casos de uso)
+- DTOs (Data Transfer Objects)
+- Mappers entre domínio e DTOs
+- Orquestra operações de domínio
+
+**3. Infrastructure Layer (Infraestrutura)**
+- Implementações concretas dos repositórios
+- Integrações com bancos de dados
+- Configurações de frameworks
+- Adaptadores externos
+
+**4. Presentation Layer (Apresentação)**
+- Componentes React/Next.js
+- Pages e Layouts
+- Hooks customizados
+- Estado da UI
+
+#### Path Aliases para DDD
+
 ```typescript
-// Instead of relative imports:
-import { AuthProvider } from '../../../auth/_module/components/AuthProvider.client';
+// Exemplos de imports com DDD
+import { User } from '@domain/auth/entities/user.entity';
+import { LoginUseCase } from '@application/auth/use-cases/login.use-case';
+import { UserRepository } from '@infrastructure/database/repositories/user.repository.impl';
+import { Button } from '@ui/button';
 
-// Use path aliases:
+// Mantém compatibilidade com estrutura atual
 import { AuthProvider } from '@auth/components/AuthProvider.client';
-import { useUsers } from '@users/hooks/use-users';
-import { PostList } from '@posts/components/PostList';
-import { Button } from '@shared/ui/button';
 ```
+
+#### Migração Gradual
+
+1. **Novos recursos**: Implementar usando estrutura DDD
+2. **Recursos existentes**: Manter funcionando, migrar gradualmente
+3. **Compartilhamento**: Use aliases para ambas estruturas
 
 ### 4. tRPC Integration
 
@@ -575,17 +685,104 @@ export const config = {
 };
 ```
 
-## Benefits of This Structure
+## Benefits of DDD Structure
 
-1. **Scalability**: Feature-based organization makes it easy to add new features
-2. **Maintainability**: Clear separation of concerns and consistent patterns
-3. **Type Safety**: Full type safety from database to frontend with Drizzle + tRPC
-4. **Performance**: Optimal use of server components reduces client bundle size
-5. **Developer Experience**: Intuitive structure that's easy to navigate
-6. **Testing**: Clear test organization by type and scope
-7. **Flexibility**: Can easily adapt to project growth and changing requirements
+1. **Separation of Concerns**: Camadas bem definidas com responsabilidades claras
+2. **Testabilidade**: Lógica de negócio isolada facilita testes unitários
+3. **Manutenibilidade**: Mudanças em uma camada não afetam outras
+4. **Escalabilidade**: Fácil adicionar novos domínios e funcionalidades
+5. **Flexibilidade**: Pode trocar implementações sem afetar domínio
+6. **Type Safety**: Tipos fortes em todas as camadas
+7. **Clean Architecture**: Segue princípios SOLID e Clean Code
 
-This structure follows Next.js 15 best practices while providing a solid foundation for building scalable, type-safe applications with tRPC and Drizzle ORM.
+## Exemplo de Implementação DDD
+
+### 1. Entity (Domínio)
+```typescript
+// src/domain/users/entities/user.entity.ts
+export class User {
+  constructor(
+    private readonly id: string,
+    private email: Email,
+    private name: string,
+    private readonly createdAt: Date
+  ) {}
+
+  changeEmail(newEmail: Email): void {
+    // Regra de negócio aqui
+    this.email = newEmail;
+  }
+
+  // Getters para acesso controlado
+  getId(): string { return this.id; }
+  getEmail(): string { return this.email.getValue(); }
+}
+```
+
+### 2. Use Case (Aplicação)
+```typescript
+// src/application/users/use-cases/create-user.use-case.ts
+import { User } from '@domain/users/entities/user.entity';
+import { UserRepository } from '@domain/users/repositories/user.repository';
+
+export class CreateUserUseCase {
+  constructor(private userRepository: UserRepository) {}
+
+  async execute(dto: CreateUserDto): Promise<UserDto> {
+    // Validações e regras de aplicação
+    const user = User.create(dto);
+    
+    // Persiste através do repositório
+    await this.userRepository.save(user);
+    
+    // Retorna DTO
+    return UserMapper.toDto(user);
+  }
+}
+```
+
+### 3. Repository Implementation (Infraestrutura)
+```typescript
+// src/infrastructure/database/repositories/user.repository.impl.ts
+import { db } from '@/lib/drizzle';
+import { users } from '@infrastructure/database/drizzle/schema';
+
+export class DrizzleUserRepository implements UserRepository {
+  async save(user: User): Promise<void> {
+    await db.insert(users).values({
+      id: user.getId(),
+      email: user.getEmail(),
+      // ... mapear entidade para schema do banco
+    });
+  }
+
+  async findById(id: string): Promise<User | null> {
+    const result = await db.query.users.findFirst({
+      where: eq(users.id, id)
+    });
+    
+    return result ? UserMapper.toDomain(result) : null;
+  }
+}
+```
+
+### 4. tRPC Router (Infraestrutura HTTP)
+```typescript
+// src/infrastructure/http/trpc/routers/users.router.ts
+import { CreateUserUseCase } from '@application/users/use-cases/create-user.use-case';
+import { userRepository } from '@infrastructure/database/repositories';
+
+export const usersRouter = createTRPCRouter({
+  create: publicProcedure
+    .input(createUserSchema)
+    .mutation(async ({ input }) => {
+      const useCase = new CreateUserUseCase(userRepository);
+      return await useCase.execute(input);
+    })
+});
+```
+
+This structure follows Next.js 15 best practices while implementing Domain Driven Design principles for building scalable, maintainable applications.
 
 ## Development & Deployment Principles
 

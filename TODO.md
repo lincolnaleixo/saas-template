@@ -1,0 +1,3 @@
+- organizar basico (brianstorm) os docs e depois peddir para claude organizar
+- falar que tem que ser DDD
+- falar que tem que usar lint depois e check for ts errors tambem e fix

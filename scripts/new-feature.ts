@@ -1,13 +1,13 @@
 #!/usr/bin/env bun
 
-import { readdir, readFile } from "fs/promises";
+import { readFile } from "fs/promises";
 import { join } from "path";
 import { $ } from "bun";
 
 /**
- * This script reads all documents from the docs folder and injects them into Claude Code
- * along with a user-provided command. It formats the documents into a single prompt
- * and sends it to Claude Code using the --dangerously-skip-permissions flag.
+ * This script is specifically for new feature requests. It reads only the essential
+ * documentation files (ABOUT.md, GUIDELINES.md, NEW FEATURES.md) and injects them
+ * into Claude Code along with the feature request command.
  */
 
 async function main() {
@@ -15,37 +15,40 @@ async function main() {
   const userCommand = process.argv.slice(2).join(" ");
   
   if (!userCommand) {
-    console.error("Usage: bun inject-docs-to-claude.ts <your command>");
-    console.error("Example: bun inject-docs-to-claude.ts 'create a new user authentication system'");
+    console.error("Usage: bun scripts/new-feature.ts <your feature request>");
+    console.error("Example: bun scripts/new-feature.ts 'create a user authentication system with JWT tokens'");
     process.exit(1);
   }
 
   try {
-    // Read all files from the docs directory
+    // Define the specific files we need for new features
     const docsDir = join(process.cwd(), "docs");
-    const files = await readdir(docsDir);
+    const requiredFiles = ["ABOUT.md", "GUIDELINES.md", "NEW FEATURES.md"];
     
-    // Filter for markdown files
-    const mdFiles = files.filter(file => file.endsWith(".md"));
-    
-    if (mdFiles.length === 0) {
-      console.error("No markdown files found in docs directory");
-      process.exit(1);
-    }
-
-    console.log(`Found ${mdFiles.length} document(s) to inject:`);
-    mdFiles.forEach(file => console.log(`  - ${file}`));
+    console.log("Loading project documentation for new feature development...");
+    console.log("Files to inject:");
+    requiredFiles.forEach(file => console.log(`  - ${file}`));
     console.log();
 
-    // Read all document contents
+    // Read the specific document contents
     const documents: string[] = [];
     
-    for (const file of mdFiles) {
+    for (const file of requiredFiles) {
       const filePath = join(docsDir, file);
-      const content = await readFile(filePath, "utf-8");
-      
-      // Format each document with a header
-      documents.push(`### Document: ${file}\n\n${content}`);
+      try {
+        const content = await readFile(filePath, "utf-8");
+        
+        // Format each document with a header
+        documents.push(`### Document: ${file}\n\n${content}`);
+      } catch (error) {
+        console.error(`Warning: Could not read ${file}. Make sure it exists in the docs directory.`);
+        // Continue with other files even if one is missing
+      }
+    }
+    
+    if (documents.length === 0) {
+      console.error("Error: No documentation files could be read from the docs directory");
+      process.exit(1);
     }
 
     // Combine all documents into a single context
@@ -58,11 +61,13 @@ ${documentContext}
 
 ---
 
-Based on the above documentation and guidelines, please execute the following task:
+This is a NEW FEATURE REQUEST. Based on the above documentation and guidelines, please implement the following feature:
 
-${userCommand}`;
+${userCommand}
 
-    console.log("Sending to Claude Code...\n");
+Important: Follow all the guidelines specified in the documentation, especially regarding real implementations (no mock data), proper file organization, and the tech stack.`;
+
+    console.log("Sending new feature request to Claude Code...\n");
 
     // Execute claude command with the full prompt
     // Using spawn to handle the interactive nature of claude

@@ -43,7 +43,8 @@ my‑saas/
 │  ├─ util.css                 ← hand‑rolled utility classes
 │  └─ images/                  ← logo, hero, etc.
 ├─ scripts/
-│  ├─ create‑page.ts           ← Claude scaffolder
+│  ├─ create-feature.ts        ← Claude scaffolder
+│  ├─ fix-bugs.ts              ← Claude scaffolder
 │  ├─ migrate.ts               ← database migrations
 │  └─ seed.ts                  ← seed data
 ├─ prompts/                    ← prompt snippets for Claude

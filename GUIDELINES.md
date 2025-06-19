@@ -116,7 +116,9 @@ For development workflows and operational procedures, see `workflow.md`.
 
 ### ALWAYS FOLLOW THESE RULES:
 
-0. **USE PATH ALIASES** - Always use the configured path aliases instead of relative imports:
+0. **ENGLISH ONLY** - All code comments, documentation, commit messages, and any text in the codebase MUST be in English. This ensures global collaboration and maintainability.
+
+1. **USE PATH ALIASES** - Always use the configured path aliases instead of relative imports:
    - **DDD Structure (Preferred for new code):**
      - `@domain/*` for domain entities and business logic
      - `@application/*` for use cases and DTOs
@@ -131,60 +133,70 @@ For development workflows and operational procedures, see `workflow.md`.
      - `@ui/*` for UI primitives
      - `@/*` for general imports
 
-1. **NO MOCK DATA** - Never use mock or fake data unless explicitly asked. Always implement with real data sources.
+2. **NO MOCK DATA** - Never use mock or fake data unless explicitly asked. Always implement with real data sources.
 
-2. **NO SIMULATED FEATURES** - Never simulate or fake functionality. Implement real, working features.
+3. **NO SIMULATED FEATURES** - Never simulate or fake functionality. Implement real, working features.
 
-3. **REAL IMPLEMENTATIONS ONLY** - Every feature must work with real data and real integrations.
+4. **REAL IMPLEMENTATIONS ONLY** - Every feature must work with real data and real integrations.
 
-4. **CODE DOCUMENTATION** - For complex files and functions, add clear comments explaining:
+5. **CODE DOCUMENTATION** - For complex files and functions, add clear comments IN ENGLISH explaining:
    - What the code does
    - How it works
    - Why design decisions were made
    - Any important context for future developers
 
-5. **NO HARDCODED CREDENTIALS** - NEVER hardcode any credentials, API keys, or secrets in the code. Always use environment variables without fallback values.
+6. **NO HARDCODED VALUES** - NEVER hardcode any configuration values, especially:
+   - Database connections and ports
+   - API URLs and ports
+   - Redis connections and ports
+   - Any Docker service ports
+   - Credentials, API keys, or secrets
+   
+   Always use environment variables:
+   - ❌ WRONG: `host: 'localhost:5432'`
    - ❌ WRONG: `database: process.env.POSTGRES_DB || 'myapp'`
-   - ✅ CORRECT: `database: process.env.POSTGRES_DB`
+   - ✅ CORRECT: `host: process.env.DB_HOST`
+   - ✅ CORRECT: `port: parseInt(process.env.DB_PORT)`
+   - ✅ CORRECT: `database: process.env.DB_NAME`
 
-6. **SECURITY FIRST** - Always validate inputs, sanitize data, and follow security best practices.
+7. **SECURITY FIRST** - Always validate inputs, sanitize data, and follow security best practices.
 
-7. **TYPE SAFETY** - Maintain strict TypeScript types. Use Zod schemas for runtime validation.
+8. **TYPE SAFETY** - Maintain strict TypeScript types. Use Zod schemas for runtime validation.
 
-8. **AUTOMATIC DATABASE MIGRATIONS** - When implementing new features that require database changes:
+9. **AUTOMATIC DATABASE MIGRATIONS** - When implementing new features that require database changes:
    - Modify the Drizzle schema files directly
    - Run the migration generation and application automatically
    - DO NOT create manual migration scripts for users to execute
 
-9. **ALWAYS USE BUN** - For all operations:
-   - Use `bun` for package management, NOT `npm` or `yarn`
-   - Use `bun run` for scripts, NOT `npm run` or `node`
-   - Use `bun install` for dependencies, NOT `npm install`
-   - All scripts should have `#!/usr/bin/env bun` shebang
+10. **ALWAYS USE BUN** - For all operations:
+    - Use `bun` for package management, NOT `npm` or `yarn`
+    - Use `bun run` for scripts, NOT `npm run` or `node`
+    - Use `bun install` for dependencies, NOT `npm install`
+    - All scripts should have `#!/usr/bin/env bun` shebang
 
 ## Folder Convention - Domain Driven Design (DDD)
 
-### Nova Estrutura Recomendada (DDD)
+### Recommended New Structure (DDD)
 
-A estrutura abaixo segue os princípios do Domain Driven Design, organizando o código em camadas bem definidas. Esta é a estrutura recomendada para novos recursos:
+The structure below follows Domain Driven Design principles, organizing code in well-defined layers. This is the recommended structure for new features:
 
 ```
 project-root/
 ├── src/
-│   ├── domain/                          # Camada de Domínio (Entidades, Value Objects, Regras de Negócio)
+│   ├── domain/                          # Domain Layer (Entities, Value Objects, Business Rules)
 │   │   ├── auth/
 │   │   │   ├── entities/
-│   │   │   │   ├── user.entity.ts       # Entidade User
-│   │   │   │   └── session.entity.ts    # Entidade Session
+│   │   │   │   ├── user.entity.ts       # User Entity
+│   │   │   │   └── session.entity.ts    # Session Entity
 │   │   │   ├── value-objects/
-│   │   │   │   ├── email.vo.ts          # Value Object Email
-│   │   │   │   └── password.vo.ts       # Value Object Password
+│   │   │   │   ├── email.vo.ts          # Email Value Object
+│   │   │   │   └── password.vo.ts       # Password Value Object
 │   │   │   ├── repositories/
-│   │   │   │   └── user.repository.ts   # Interface do repositório
+│   │   │   │   └── user.repository.ts   # Repository interface
 │   │   │   ├── services/
-│   │   │   │   └── auth.domain-service.ts # Serviços de domínio
+│   │   │   │   └── auth.domain-service.ts # Domain services
 │   │   │   └── events/
-│   │   │       └── user-created.event.ts # Eventos de domínio
+│   │   │       └── user-created.event.ts # Domain events
 │   │   │
 │   │   ├── users/
 │   │   │   ├── entities/
@@ -198,7 +210,7 @@ project-root/
 │   │       ├── repositories/
 │   │       └── services/
 │   │
-│   ├── application/                     # Camada de Aplicação (Use Cases, DTOs)
+│   ├── application/                     # Application Layer (Use Cases, DTOs)
 │   │   ├── auth/
 │   │   │   ├── use-cases/
 │   │   │   │   ├── login.use-case.ts
@@ -220,7 +232,7 @@ project-root/
 │   │       ├── dtos/
 │   │       └── mappers/
 │   │
-│   └── infrastructure/                  # Camada de Infraestrutura (Implementações concretas)
+│   └── infrastructure/                  # Infrastructure Layer (Concrete implementations)
 │       ├── database/
 │       │   ├── drizzle/
 │       │   │   ├── schema/
@@ -240,21 +252,21 @@ project-root/
 │       └── queues/
 │           └── bullmq/
 │
-├── app/                                 # Camada de Apresentação (Next.js App Router)
+├── app/                                 # Presentation Layer (Next.js App Router)
 │   ├── (marketing)/
-│   ├── (modules)/                       # Módulos organizados por domínio
+│   ├── (modules)/                       # Modules organized by domain
 │   │   ├── auth/
 │   │   ├── users/
 │   │   └── posts/
 │   └── api/
 │       └── trpc/
 │
-└── components/                          # Componentes de UI compartilhados
+└── components/                          # Shared UI components
     ├── ui/
     └── layout/
 ```
 
-### Estrutura Atual (Manter Compatibilidade)
+### Current Structure (Maintain Compatibility)
 
 ```
 project-root/
@@ -487,51 +499,51 @@ export function PostEditor() {
 
 ### 3. Domain Driven Design Architecture
 
-#### Camadas da Arquitetura
+#### Architecture Layers
 
-**1. Domain Layer (Domínio)**
-- Contém a lógica de negócio pura
-- Entidades, Value Objects, Domain Services
-- Interfaces de repositórios
-- Eventos de domínio
-- Não depende de nenhuma outra camada
+**1. Domain Layer**
+- Contains pure business logic
+- Entities, Value Objects, Domain Services
+- Repository interfaces
+- Domain events
+- Does not depend on any other layer
 
-**2. Application Layer (Aplicação)**
-- Use Cases (casos de uso)
+**2. Application Layer**
+- Use Cases
 - DTOs (Data Transfer Objects)
-- Mappers entre domínio e DTOs
-- Orquestra operações de domínio
+- Mappers between domain and DTOs
+- Orchestrates domain operations
 
-**3. Infrastructure Layer (Infraestrutura)**
-- Implementações concretas dos repositórios
-- Integrações com bancos de dados
-- Configurações de frameworks
-- Adaptadores externos
+**3. Infrastructure Layer**
+- Concrete repository implementations
+- Database integrations
+- Framework configurations
+- External adapters
 
-**4. Presentation Layer (Apresentação)**
-- Componentes React/Next.js
-- Pages e Layouts
-- Hooks customizados
-- Estado da UI
+**4. Presentation Layer**
+- React/Next.js components
+- Pages and Layouts
+- Custom hooks
+- UI state
 
-#### Path Aliases para DDD
+#### Path Aliases for DDD
 
 ```typescript
-// Exemplos de imports com DDD
+// Import examples with DDD
 import { User } from '@domain/auth/entities/user.entity';
 import { LoginUseCase } from '@application/auth/use-cases/login.use-case';
 import { UserRepository } from '@infrastructure/database/repositories/user.repository.impl';
 import { Button } from '@ui/button';
 
-// Mantém compatibilidade com estrutura atual
+// Maintains compatibility with current structure
 import { AuthProvider } from '@auth/components/AuthProvider.client';
 ```
 
-#### Migração Gradual
+#### Gradual Migration
 
-1. **Novos recursos**: Implementar usando estrutura DDD
-2. **Recursos existentes**: Manter funcionando, migrar gradualmente
-3. **Compartilhamento**: Use aliases para ambas estruturas
+1. **New features**: Implement using DDD structure
+2. **Existing features**: Keep working, migrate gradually
+3. **Sharing**: Use aliases for both structures
 
 ### 4. tRPC Integration
 
@@ -687,17 +699,17 @@ export const config = {
 
 ## Benefits of DDD Structure
 
-1. **Separation of Concerns**: Camadas bem definidas com responsabilidades claras
-2. **Testabilidade**: Lógica de negócio isolada facilita testes unitários
-3. **Manutenibilidade**: Mudanças em uma camada não afetam outras
-4. **Escalabilidade**: Fácil adicionar novos domínios e funcionalidades
-5. **Flexibilidade**: Pode trocar implementações sem afetar domínio
-6. **Type Safety**: Tipos fortes em todas as camadas
-7. **Clean Architecture**: Segue princípios SOLID e Clean Code
+1. **Separation of Concerns**: Well-defined layers with clear responsibilities
+2. **Testability**: Isolated business logic facilitates unit testing
+3. **Maintainability**: Changes in one layer don't affect others
+4. **Scalability**: Easy to add new domains and features
+5. **Flexibility**: Can swap implementations without affecting domain
+6. **Type Safety**: Strong types across all layers
+7. **Clean Architecture**: Follows SOLID principles and Clean Code
 
-## Exemplo de Implementação DDD
+## DDD Implementation Example
 
-### 1. Entity (Domínio)
+### 1. Entity (Domain)
 ```typescript
 // src/domain/users/entities/user.entity.ts
 export class User {
@@ -709,17 +721,17 @@ export class User {
   ) {}
 
   changeEmail(newEmail: Email): void {
-    // Regra de negócio aqui
+    // Business rule here
     this.email = newEmail;
   }
 
-  // Getters para acesso controlado
+  // Getters for controlled access
   getId(): string { return this.id; }
   getEmail(): string { return this.email.getValue(); }
 }
 ```
 
-### 2. Use Case (Aplicação)
+### 2. Use Case (Application)
 ```typescript
 // src/application/users/use-cases/create-user.use-case.ts
 import { User } from '@domain/users/entities/user.entity';
@@ -729,19 +741,19 @@ export class CreateUserUseCase {
   constructor(private userRepository: UserRepository) {}
 
   async execute(dto: CreateUserDto): Promise<UserDto> {
-    // Validações e regras de aplicação
+    // Validations and application rules
     const user = User.create(dto);
     
-    // Persiste através do repositório
+    // Persist through repository
     await this.userRepository.save(user);
     
-    // Retorna DTO
+    // Return DTO
     return UserMapper.toDto(user);
   }
 }
 ```
 
-### 3. Repository Implementation (Infraestrutura)
+### 3. Repository Implementation (Infrastructure)
 ```typescript
 // src/infrastructure/database/repositories/user.repository.impl.ts
 import { db } from '@/lib/drizzle';
@@ -752,7 +764,7 @@ export class DrizzleUserRepository implements UserRepository {
     await db.insert(users).values({
       id: user.getId(),
       email: user.getEmail(),
-      // ... mapear entidade para schema do banco
+      // ... map entity to database schema
     });
   }
 
@@ -766,7 +778,7 @@ export class DrizzleUserRepository implements UserRepository {
 }
 ```
 
-### 4. tRPC Router (Infraestrutura HTTP)
+### 4. tRPC Router (HTTP Infrastructure)
 ```typescript
 // src/infrastructure/http/trpc/routers/users.router.ts
 import { CreateUserUseCase } from '@application/users/use-cases/create-user.use-case';
@@ -783,6 +795,108 @@ export const usersRouter = createTRPCRouter({
 ```
 
 This structure follows Next.js 15 best practices while implementing Domain Driven Design principles for building scalable, maintainable applications.
+
+## Docker Port Configuration
+
+### Environment Variables for Ports
+
+All Docker service ports MUST be configurable via environment variables to support multiple deployments on the same server:
+
+```bash
+# Database Ports
+DB_PORT=5432                    # PostgreSQL port
+PGADMIN_PORT=5050              # pgAdmin UI port
+
+# Redis Ports
+REDIS_PORT=6379                # Redis server port
+REDIS_INSIGHT_PORT=8001        # RedisInsight UI port
+
+# Application Ports
+API_PORT=8000                  # Backend API port
+FRONTEND_PORT=3000             # Next.js frontend port
+BULL_BOARD_PORT=3001           # Bull Board UI port
+
+# Development Tool Ports
+MAILDEV_PORT=1080              # MailDev UI port
+MAILDEV_SMTP_PORT=1025         # MailDev SMTP port
+STORYBOOK_PORT=6006            # Storybook port
+
+# Nginx Ports (Production)
+NGINX_HTTP_PORT=80             # HTTP port
+NGINX_HTTPS_PORT=443           # HTTPS port
+```
+
+### Usage in Code
+
+**Always use environment variables for connections:**
+
+```typescript
+// ❌ WRONG - Hardcoded ports
+const dbConfig = {
+  host: 'localhost',
+  port: 5432,
+  database: 'myapp'
+};
+
+// ✅ CORRECT - Environment variables
+const dbConfig = {
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT),
+  database: process.env.DB_NAME
+};
+
+// ❌ WRONG - Hardcoded Redis URL
+const redis = new Redis('redis://localhost:6379');
+
+// ✅ CORRECT - Environment variable
+const redis = new Redis(process.env.REDIS_URL);
+```
+
+### Docker Compose Configuration
+
+```yaml
+# docker-compose.yml
+services:
+  db:
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_PORT: ${DB_PORT:-5432}
+
+  redis:
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+  api:
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      PORT: ${API_PORT:-8000}
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@db:5432/${DB_NAME}
+      REDIS_URL: redis://redis:${REDIS_PORT:-6379}
+```
+
+### Multiple Deployments on Same Server
+
+To run multiple instances on the same server, use different `.env` files:
+
+```bash
+# Project 1: .env.project1
+PROJECT_NAME=project1
+DB_PORT=5432
+REDIS_PORT=6379
+API_PORT=8000
+
+# Project 2: .env.project2
+PROJECT_NAME=project2
+DB_PORT=5433
+REDIS_PORT=6380
+API_PORT=8001
+
+# Run with specific env file
+docker-compose --env-file .env.project1 up -d
+docker-compose --env-file .env.project2 up -d
+```
 
 ## Development & Deployment Principles
 
@@ -801,6 +915,62 @@ This structure follows Next.js 15 best practices while implementing Domain Drive
 * Always use SSL in production - no HTTP-only option
 * Nginx templates processed at runtime with environment variables
 * See `workflow.md` for detailed deployment procedures
+
+### Environment Variables Best Practices
+
+1. **Never use fallback values in production code**
+   ```typescript
+   // ❌ WRONG
+   const apiUrl = process.env.API_URL || 'http://localhost:8000';
+   
+   // ✅ CORRECT
+   const apiUrl = process.env.API_URL;
+   if (!apiUrl) {
+     throw new Error('API_URL environment variable is required');
+   }
+   ```
+
+2. **Validate required environment variables at startup**
+   ```typescript
+   // src/config/env.validation.ts
+   const requiredEnvVars = [
+     'DATABASE_URL',
+     'REDIS_URL',
+     'API_PORT',
+     'AUTH_SECRET'
+   ];
+   
+   for (const envVar of requiredEnvVars) {
+     if (!process.env[envVar]) {
+       throw new Error(`Missing required environment variable: ${envVar}`);
+     }
+   }
+   ```
+
+3. **Use type-safe environment variable access**
+   ```typescript
+   // src/config/env.ts
+   export const env = {
+     database: {
+       url: process.env.DATABASE_URL!,
+       port: parseInt(process.env.DB_PORT!),
+     },
+     redis: {
+       url: process.env.REDIS_URL!,
+       port: parseInt(process.env.REDIS_PORT!),
+     },
+     api: {
+       port: parseInt(process.env.API_PORT!),
+       url: process.env.NEXT_PUBLIC_API_URL!,
+     },
+   } as const;
+   ```
+
+4. **Document all environment variables**
+   - Maintain `.env.example` with all variables and descriptions
+   - Include type, format, and valid values
+   - Mark required vs optional variables
+   - Provide secure default generation commands
 
 ## Benefits Recap
 

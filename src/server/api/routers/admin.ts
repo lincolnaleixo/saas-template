@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
-import { db } from '@/infrastructure/database/drizzle';
-import { users, sessions, oauthAccounts } from '@/infrastructure/database/drizzle/schema/auth.schema';
+import { db } from '@/lib/drizzle';
+import { users, sessions, oauthAccounts } from '../../../infrastructure/database/drizzle/schema';
 import { eq, desc, or, sql } from 'drizzle-orm';
 import { TRPCError } from '@trpc/server';
 

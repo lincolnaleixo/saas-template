@@ -47,7 +47,7 @@ export COMPOSE_BAKE=true
 
 # Services to start in development
 # You can customize this list in .env.local with DEV_SERVICES variable
-SERVICES="${DEV_SERVICES:-frontend api scheduler db redis}"
+SERVICES="${DEV_SERVICES:-frontend scheduler db redis}"
 
 # Colors for output
 GREEN='\033[0;32m'

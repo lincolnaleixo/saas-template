@@ -1,6 +1,6 @@
 'use client';
 
-import { api } from "@/server/client";
+import { api } from "@/components/providers/trpc-provider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, UserCheck, Activity, Globe } from "lucide-react";
 

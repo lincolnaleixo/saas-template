@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { api } from "@/server/client";
+import { api } from "@/components/providers/trpc-provider";
 import {
   Table,
   TableBody,

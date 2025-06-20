@@ -42,6 +42,113 @@ async function collectFeatures(): Promise<string[]> {
   return features;
 }
 
+// Enhance features using Cerebras AI
+async function enhanceFeatures(features: string[]): Promise<{ original: string; enhanced: string }[]> {
+  const CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY;
+  
+  if (!CEREBRAS_API_KEY) {
+    console.log("\n⚠️  CEREBRAS_API_KEY not found. Skipping AI enhancement.");
+    return features.map(f => ({ original: f, enhanced: f }));
+  }
+  
+  console.log("\n🤖 Enhancing features with AI...");
+  
+  const enhancedFeatures: { original: string; enhanced: string }[] = [];
+  
+  for (let i = 0; i < features.length; i++) {
+    const feature = features[i];
+    console.log(`   Processing feature ${i + 1}/${features.length}...`);
+    
+    try {
+      const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${CEREBRAS_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "qwen-3-32b",
+          stream: false,
+          max_tokens: 16382,
+          temperature: 0.7,
+          top_p: 0.95,
+          messages: [
+            {
+              role: "system",
+              content: "you make prompts look better"
+            },
+            {
+              role: "user",
+              content: `this is the prompt of the user to implement this feature, can you make it more clear and better so we can send to claude code? return in JSON only. prompt = ${feature}`
+            }
+          ]
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const content = data.choices[0].message.content;
+      
+      // Extract JSON from the response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const enhanced = JSON.parse(jsonMatch[0]);
+        enhancedFeatures.push({ 
+          original: feature, 
+          enhanced: enhanced.task || feature 
+        });
+      } else {
+        enhancedFeatures.push({ original: feature, enhanced: feature });
+      }
+      
+    } catch (error) {
+      console.log(`   ⚠️  Failed to enhance feature ${i + 1}: ${error.message}`);
+      enhancedFeatures.push({ original: feature, enhanced: feature });
+    }
+  }
+  
+  return enhancedFeatures;
+}
+
+// Ask user to choose between original and enhanced features
+async function selectFeatures(enhancedFeatures: { original: string; enhanced: string }[]): Promise<string[]> {
+  const selectedFeatures: string[] = [];
+  
+  console.log("\n📝 Feature Enhancement Results");
+  console.log("==============================\n");
+  
+  for (let i = 0; i < enhancedFeatures.length; i++) {
+    const { original, enhanced } = enhancedFeatures[i];
+    
+    if (original === enhanced) {
+      // No enhancement made
+      selectedFeatures.push(original);
+      console.log(`Feature ${i + 1}: ${original}`);
+      console.log("(No AI enhancement available)\n");
+    } else {
+      // Show both versions
+      console.log(`Feature ${i + 1}:`);
+      console.log(`  Original: ${original}`);
+      console.log(`  Enhanced: ${enhanced}`);
+      
+      const choice = prompt("\nUse enhanced version? (y/n, default: y): ") || "y";
+      
+      if (choice.toLowerCase() === 'y') {
+        selectedFeatures.push(enhanced);
+        console.log("✓ Using enhanced version\n");
+      } else {
+        selectedFeatures.push(original);
+        console.log("✓ Using original version\n");
+      }
+    }
+  }
+  
+  return selectedFeatures;
+}
+
 async function loadDocumentation(): Promise<string> {
   const docsDir = join(process.cwd(), "prompts");
   const requiredFiles = [
@@ -177,7 +284,7 @@ async function loadFollowUpCommands(): Promise<string> {
 
 // Generate markdown summary from session data
 async function generateMarkdownSummary(sessionSummary: any): Promise<string> {
-  const { sessionId, timestamp, features, responses, gitResult } = sessionSummary;
+  const { sessionId, timestamp, selectedFeatures, responses, gitResult } = sessionSummary;
   
   let markdown = `## 🚀 Feature Implementation Session\n\n`;
   markdown += `**Session ID:** ${sessionId}\n`;
@@ -185,7 +292,7 @@ async function generateMarkdownSummary(sessionSummary: any): Promise<string> {
   
   // Features requested
   markdown += `### 📋 Features Implemented\n\n`;
-  features.forEach((feature: string, index: number) => {
+  selectedFeatures.forEach((feature: string, index: number) => {
     markdown += `${index + 1}. ${feature}\n`;
   });
   markdown += `\n`;
@@ -265,9 +372,15 @@ async function main() {
     console.log(`\n📅 Session ID: ${sessionId}`);
     
     // Collect features from user
-    const features = await collectFeatures();
+    const rawFeatures = await collectFeatures();
     
-    console.log("\n📋 Features to implement:");
+    // Enhance features with AI if available
+    const enhancedFeatures = await enhanceFeatures(rawFeatures);
+    
+    // Let user select between original and enhanced versions
+    const features = await selectFeatures(enhancedFeatures);
+    
+    console.log("\n📋 Final features to implement:");
     features.forEach((feature, index) => {
       console.log(`  ${index + 1}. ${feature}`);
     });
@@ -295,7 +408,9 @@ async function main() {
     const sessionData = {
       sessionId,
       timestamp: now.toISOString(),
-      features,
+      originalFeatures: rawFeatures,
+      enhancedFeatures: enhancedFeatures,
+      selectedFeatures: features,
       prompts: {
         featureImplementation: featureImplementationPrompt,
         endWorkflow: null // Will be set later

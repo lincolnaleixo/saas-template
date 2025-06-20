@@ -169,7 +169,8 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
   const args = [
     "claude", 
     "--dangerously-skip-permissions",
-    "--output-format", "stream-json"
+    "--output-format", "stream-json",
+    "--verbose"
   ];
   
   // Add continue flag if this is a follow-up

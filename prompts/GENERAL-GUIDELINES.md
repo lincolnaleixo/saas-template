@@ -78,12 +78,7 @@ my‑saas/
 
 7. **TYPE SAFETY** - Maintain strict TypeScript types. Use Zod schemas for runtime validation.
 
-8. **ALWAYS USE BUN** - For all operations:
-   - Use `bun` for package management, NOT `npm` or `yarn`
-   - Use `bun run` for scripts, NOT `npm run` or `node`
-   - Use `bun install` for dependencies, NOT `npm install`
-   - All scripts should have `#!/usr/bin/env bun` shebang
-   - Always run inside Docker containers for consistency
+8. **ALWAYS USE BUN INSIDE DOCKER** - For all operations.
 
 ## Key Concepts and Best Practices
 

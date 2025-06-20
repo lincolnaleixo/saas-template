@@ -8,3 +8,9 @@ These commands are automatically executed after implementing new features:
 4. **Fix all the typescript errors** - Run TypeScript compiler and fix any type errors that were introduced
 5. **Give me a nice summary what you did and what I need to test** - Provide a comprehensive summary of all changes made and detailed testing instructions
 6. **Execute ./dev/git.ts** - Run the git script to create a well-formatted commit with all changes
+
+- implementa
+- escreve comments etc nas coisas que criou/alterou
+- atualiza readme
+- atualiza features.md
+- git.ts

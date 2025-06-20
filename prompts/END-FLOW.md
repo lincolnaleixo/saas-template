@@ -14,3 +14,6 @@ These commands are automatically executed after implementing new features:
 - atualiza readme
 - atualiza features.md
 - git.ts
+- ajuste docker compose or dockfiles if needed
+
+think

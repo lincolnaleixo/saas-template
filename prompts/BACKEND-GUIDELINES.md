@@ -291,7 +291,8 @@ backend/
 │   ├── db.ts           # Drizzle client & helpers
 │   ├── auth.ts         # Lucia session helpers
 │   ├── cache.ts        # Redis client
-│   └── jobs.ts         # pg-boss setup & job handlers
+│   ├── jobs.ts         # pg-boss setup & job handlers
+│   └── openapi.ts      # API documentation generator
 ├── utils/              # Helper functions
 │   └── crypto.ts
 ├── config/             # Configuration
@@ -369,9 +370,250 @@ worker/                  # Separate worker service
 
 ### Automatic API Documentation
 
-1. **Define schemas with Zod** for all endpoints
-2. **Run** `bun run scripts/generate-docs.ts` to generate OpenAPI
-3. **Commit** `docs/openapi.json` for AI assistants
+**We use a hybrid approach: runtime generation with intelligent caching**
+
+#### Setup OpenAPI Registry (`backend/lib/openapi.ts`)
+
+```typescript
+import { OpenAPIRegistry, OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi';
+import { z } from 'zod';
+
+export const registry = new OpenAPIRegistry();
+
+// Define reusable schemas
+export const UserSchema = registry.register(
+  'User',
+  z.object({
+    id: z.string().uuid(),
+    email: z.string().email(),
+    name: z.string(),
+    role: z.enum(['user', 'admin']),
+    createdAt: z.string().datetime()
+  })
+);
+
+export const ErrorSchema = registry.register(
+  'Error',
+  z.object({
+    error: z.string(),
+    errors: z.array(z.any()).optional()
+  })
+);
+
+// Cache for generated documentation
+let cachedSpec: any = null;
+let cacheTimestamp = 0;
+const CACHE_DURATION = 60000; // 1 minute in development
+
+export function generateOpenAPIDocument(baseUrl: string) {
+  const now = Date.now();
+  
+  // Return cached spec if still valid
+  if (cachedSpec && (now - cacheTimestamp) < CACHE_DURATION) {
+    return cachedSpec;
+  }
+  
+  const generator = new OpenApiGeneratorV3(registry.definitions);
+  
+  cachedSpec = generator.generateDocument({
+    openapi: '3.0.0',
+    info: {
+      version: process.env.APP_VERSION || '1.0.0',
+      title: 'API Documentation',
+      description: 'Auto-generated API documentation'
+    },
+    servers: [{ url: baseUrl }]
+  });
+  
+  cacheTimestamp = now;
+  return cachedSpec;
+}
+
+// Clear cache on hot reload in development
+if (process.env.NODE_ENV === 'development') {
+  process.on('SIGUSR2', () => {
+    cachedSpec = null;
+  });
+}
+```
+
+#### Document Routes (`backend/routes/users.ts`)
+
+```typescript
+import { registry } from '@/backend/lib/openapi';
+import { z } from 'zod';
+import { UserSchema, ErrorSchema } from '@/backend/lib/openapi';
+
+// Define request/response schemas
+const CreateUserBody = z.object({
+  email: z.string().email(),
+  name: z.string().min(2),
+  password: z.string().min(8)
+});
+
+const CreateUserResponse = z.object({
+  user: UserSchema,
+  token: z.string()
+});
+
+// Register endpoint documentation
+registry.registerPath({
+  method: 'post',
+  path: '/api/users',
+  summary: 'Create a new user',
+  tags: ['Users'],
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: CreateUserBody
+        }
+      }
+    }
+  },
+  responses: {
+    201: {
+      description: 'User created successfully',
+      content: {
+        'application/json': {
+          schema: CreateUserResponse
+        }
+      }
+    },
+    400: {
+      description: 'Invalid input',
+      content: {
+        'application/json': {
+          schema: ErrorSchema
+        }
+      }
+    }
+  }
+});
+
+// Actual route handler
+export async function createUser(req: Request) {
+  const data = await validateBody(req, CreateUserBody);
+  const user = await userService.create(data);
+  return Response.json({ user, token: generateToken(user) }, { status: 201 });
+}
+```
+
+#### Serve Swagger UI (`backend/routes/docs.ts`)
+
+```typescript
+import { generateOpenAPIDocument } from '@/backend/lib/openapi';
+import { getUser } from '@/backend/lib/auth';
+
+export async function serveApiDocs(req: Request) {
+  const url = new URL(req.url);
+  
+  // Optional: Require admin access
+  const user = await getUser(req);
+  if (!user || user.role !== 'admin') {
+    return new Response('Unauthorized', { status: 401 });
+  }
+  
+  // Serve Swagger UI
+  if (url.pathname === '/api-docs') {
+    return new Response(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>API Documentation</title>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+        <style>
+          body { margin: 0; }
+          .swagger-ui .topbar { display: none; }
+        </style>
+      </head>
+      <body>
+        <div id="swagger-ui"></div>
+        <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+        <script>
+          window.onload = () => {
+            SwaggerUIBundle({
+              url: '/api-docs/openapi.json',
+              dom_id: '#swagger-ui',
+              deepLinking: true,
+              presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIBundle.SwaggerUIStandalonePreset
+              ],
+              layout: 'BaseLayout',
+              tryItOutEnabled: true,
+              persistAuthorization: true
+            });
+          };
+        </script>
+      </body>
+      </html>
+    `, {
+      headers: { 'Content-Type': 'text/html' }
+    });
+  }
+  
+  // Serve OpenAPI JSON
+  if (url.pathname === '/api-docs/openapi.json') {
+    const origin = `${url.protocol}//${url.host}`;
+    const spec = generateOpenAPIDocument(origin);
+    
+    return Response.json(spec);
+  }
+  
+  return new Response('Not Found', { status: 404 });
+}
+```
+
+#### Route Registration (`backend/routes/index.ts`)
+
+```typescript
+import { serveApiDocs } from './docs';
+import { createUser, getUsers, getUser, updateUser, deleteUser } from './users';
+
+// Import all route files to register OpenAPI definitions
+import './users';
+import './auth';
+import './posts';
+
+export const routes = {
+  // API Documentation (admin only)
+  'GET /api-docs': serveApiDocs,
+  'GET /api-docs/openapi.json': serveApiDocs,
+  
+  // User routes
+  'POST /api/users': createUser,
+  'GET /api/users': getUsers,
+  'GET /api/users/:id': getUser,
+  'PUT /api/users/:id': updateUser,
+  'DELETE /api/users/:id': deleteUser,
+  
+  // ... other routes
+};
+```
+
+#### Installation & Usage
+
+```bash
+# Install required packages
+bun add @asteasolutions/zod-to-openapi
+
+# Access documentation
+# Development: http://localhost:8000/api-docs
+# Production: https://yourapi.com/api-docs (admin only)
+```
+
+#### Features
+
+- **Auto-generated** from your Zod schemas
+- **Interactive testing** with "Try it out" button
+- **Always up-to-date** - generated at runtime
+- **Cached for performance** - regenerates every minute in dev
+- **Protected access** - can require admin role
+- **No build step** - works immediately
+- **Hot reload friendly** - updates on code changes
 
 ## 🔧 Tool Configuration
 
@@ -382,7 +624,7 @@ worker/                  # Separate worker service
 | **pgAdmin4** | 5050 | Database GUI + Job monitoring |
 | **RedisInsight** | 8001 | Redis cache monitoring |
 | **MailDev** | 1080 | Email testing UI |
-| **Custom Dashboard** | 3001 | Optional job status dashboard |
+| **Swagger UI** | /api-docs | API documentation & testing |
 
 ### Performance Optimizations
 
@@ -529,7 +771,6 @@ REDIS_INSIGHT_PORT=8001        # RedisInsight UI port
 # Application Ports
 API_PORT=8000                  # Backend API port
 WORKER_PORT=8002               # Worker health check port
-DASHBOARD_PORT=3001            # Optional custom job dashboard
 
 # Development Tool Ports
 MAILDEV_PORT=1080              # MailDev UI port

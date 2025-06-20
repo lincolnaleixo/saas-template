@@ -33,7 +33,7 @@ dev/bug-fix.ts
 
 #### Feature Improvements
 ```bash
-dev/improve-feature.ts
+dev/new-perf.ts
 ```
 
 #### New Job on Scheduler/Worker

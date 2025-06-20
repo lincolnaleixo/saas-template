@@ -1,0 +1,20 @@
+{
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 28702,
+  "duration_api_ms": 26407,
+  "num_turns": 11,
+  "result": "✓ Created index.html with only \"hello world\" text.",
+  "session_id": "377ec032-b16d-4408-8010-fe5d01a99da5",
+  "total_cost_usd": 0.7610918999999999,
+  "usage": {
+    "input_tokens": 32,
+    "cache_creation_input_tokens": 29190,
+    "cache_read_input_tokens": 115304,
+    "output_tokens": 527,
+    "server_tool_use": {
+      "web_search_requests": 0
+    }
+  }
+}

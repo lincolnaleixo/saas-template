@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 
-import { readFile } from "fs/promises";
+import { readFile, writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { existsSync } from "fs";
 import { runGitCommit } from "./git.js";
 
 /**
@@ -90,7 +91,7 @@ function formatFeaturesAsTodos(features: string[]): string {
   return returnPrompt;
 }
 
-async function sendToClaude(prompt: string, continueConversation: boolean = false): Promise<void> {
+async function sendToClaude(prompt: string, continueConversation: boolean = false, sessionId: string): Promise<any> {
   console.log("\n🚀 Sending to Claude Code...\n");
 
   // Build command arguments
@@ -113,7 +114,7 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
   });
 
   // Sent prompt to Claude
-  console.log(`\n📜 Prompt sent to Claude. Let them code`);
+  console.log(`📜 Prompt sent to Claude. Let them code`);
 
   // Collect the output
   const output = await new Response(proc.stdout).text();
@@ -131,13 +132,24 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
     console.log("\n📝 Claude Response:");
     console.log(response.response || response);
     
-    // Optionally save to file for debugging
-    const filename = continueConversation ? "claude-response-continued.json" : "claude-response.json";
-    await Bun.write(filename, JSON.stringify(response, null, 2));
-    console.log(`\n💾 Full response saved to ${filename}`);
+    // Save to output directory with full datetime
+    const outputDir = join(process.cwd(), "dev", "output");
+    if (!existsSync(outputDir)) {
+      await mkdir(outputDir, { recursive: true });
+    }
+    
+    const outputType = continueConversation ? "continued" : "initial";
+    const filename = `${sessionId}-${outputType}.json`;
+    const filepath = join(outputDir, filename);
+    
+    await writeFile(filepath, JSON.stringify(response, null, 2));
+    console.log(`\n💾 Full response saved to ${filepath}`);
+    
+    return response;
   } catch (error) {
     // If not JSON, just display the raw output
     console.log(output);
+    return null;
   }
 }
 
@@ -159,6 +171,12 @@ async function loadFollowUpCommands(): Promise<Array<{name: string, prompt: stri
 
 async function main() {
   try {
+    // Generate session ID with full datetime
+    const now = new Date();
+    const sessionId = now.toISOString().replace(/[:.]/g, '-');
+    
+    console.log(`\n📅 Session ID: ${sessionId}`);
+    
     // Collect features from user
     const features = await collectFeatures();
     
@@ -181,10 +199,25 @@ async function main() {
     featureImplementationPrompt += `${documentation}`;
     featureImplementationPrompt += `${featuresPrompt}`;
     
+    // Save session data
+    const outputDir = join(process.cwd(), "dev", "output");
+    if (!existsSync(outputDir)) {
+      await mkdir(outputDir, { recursive: true });
+    }
+    
+    const sessionData = {
+      sessionId,
+      timestamp: now.toISOString(),
+      features,
+      prompts: {
+        featureImplementation: featureImplementationPrompt,
+        endWorkflow: null // Will be set later
+      }
+    };
+    
     // Step 1: Send feature implementation request
     console.log("\n🚀 Step 1: Implementing features...");
-    await sendToClaude(featureImplementationPrompt, false);
-    // console.log(featureImplementationPrompt)
+    const response1 = await sendToClaude(featureImplementationPrompt, false, sessionId);
     
     console.log("\n✅ Features implemented!");
     
@@ -197,17 +230,19 @@ async function main() {
     
     endWorkflowPrompt += '\n\nPlease go through each checklist item in order and ensure all quality gates are met.';
     
+    sessionData.prompts.endWorkflow = endWorkflowPrompt;
+    
     // Continue the conversation with end workflow tasks
-    await sendToClaude(endWorkflowPrompt, true);
-    // console.log(endWorkflowPrompt);
+    const response2 = await sendToClaude(endWorkflowPrompt, true, sessionId);
 
     console.log("\n✅ Post-implementation checklist completed!");
 
     // Step 3: Commit changes
     console.log("\n🔄 Step 3: Committing changes to git...");
     
+    let gitResult = null;
     try {
-      const gitResult = await runGitCommit();
+      gitResult = await runGitCommit();
       
       if (gitResult.success) {
         console.log(`\n✅ Git commit successful: ${gitResult.message}`);
@@ -221,7 +256,23 @@ async function main() {
     } catch (gitError) {
       console.log(`\n⚠️  Git commit error: ${gitError.message}`);
       console.log("   You may need to commit changes manually.");
+      gitResult = { success: false, message: gitError.message };
     }
+    
+    // Save complete session summary
+    const sessionSummary = {
+      ...sessionData,
+      responses: {
+        featureImplementation: response1,
+        endWorkflow: response2
+      },
+      gitResult,
+      completedAt: new Date().toISOString()
+    };
+    
+    const summaryPath = join(outputDir, `${sessionId}-summary.json`);
+    await writeFile(summaryPath, JSON.stringify(sessionSummary, null, 2));
+    console.log(`\n📊 Complete session summary saved to ${summaryPath}`);
     
     console.log("\n✨ All done! Features have been implemented, tested, documented, and committed.");
 

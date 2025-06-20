@@ -204,7 +204,7 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
   });
 
   // Sent prompt to Claude
-  console.log(`📜 Prompt sent to Claude. Now sit and wait`);
+  console.log(`📜 Prompt sent to Claude`);
   console.log("\n⏳ Claude is working...\n");
 
   // Process streaming output

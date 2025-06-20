@@ -34,7 +34,6 @@ my‑saas/
 │      ├─ index.html           ← base HTML + PicoCSS + import‑map
 │      ├─ import‑map.json      ← CDN resolves
 │      ├─ components/
-│      │   └─ prompt‑box.ts    ← Web Component example
 │      └─ assets/              ← icons, favicons
 ├─ static/
 │  ├─ util.css                 ← hand‑rolled utility classes

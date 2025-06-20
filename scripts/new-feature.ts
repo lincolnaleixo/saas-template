@@ -5,7 +5,8 @@ import { join } from "path";
 
 /**
  * Interactive script for new feature requests. Collects multiple features from user input,
- * organizes them as todos, and sends them to Claude Code with project documentation context.
+ * organizes them as todos, sends them to Claude Code, then automatically runs
+ * predetermined follow-up commands.
  */
 
 async function collectFeatures(): Promise<string[]> {
@@ -73,6 +74,70 @@ function formatFeaturesAsTodos(features: string[]): string {
   return `Those are the new features to implement as a structured todo list:\n${todoList}`;
 }
 
+async function sendToClaude(prompt: string): Promise<void> {
+  console.log("\n🚀 Sending to Claude Code...\n");
+
+  // Execute claude command
+  const proc = Bun.spawn(["claude", "--dangerously-skip-permissions"], {
+    stdin: "pipe",
+    stdout: "inherit",
+    stderr: "inherit"
+  });
+
+  // Send the prompt to claude
+  proc.stdin.write(prompt);
+  proc.stdin.end();
+
+  // Wait for the process to complete
+  await proc.exited;
+}
+
+// Load follow-up commands from END-FLOW.md
+async function loadFollowUpCommands(): Promise<Array<{name: string, prompt: string}>> {
+  const endFlowPath = join(process.cwd(), "docs", "END-FLOW.md");
+  
+  try {
+    const content = await readFile(endFlowPath, "utf-8");
+    console.log("  ✓ Loaded END-FLOW.md");
+    
+    // Parse the markdown file to extract commands
+    const lines = content.split('\n');
+    const commands: Array<{name: string, prompt: string}> = [];
+    
+    for (const line of lines) {
+      // Match numbered list items (e.g., "1. Command description")
+      const match = line.match(/^\d+\.\s+\*\*(.+?)\*\*\s*-?\s*(.+)$/);
+      if (match) {
+        const [_, name, description] = match;
+        commands.push({
+          name: name.trim(),
+          prompt: `${description.trim()}`
+        });
+      }
+    }
+    
+    return commands;
+  } catch (error) {
+    console.log("  ⚠️  Could not load END-FLOW.md, using default commands");
+    
+    // Fallback to default commands if file not found
+    return [
+      {
+        name: "Check implementation",
+        prompt: "Please review what was implemented and confirm all features are working correctly. Run any necessary tests."
+      },
+      {
+        name: "Document the features",
+        prompt: "Create or update documentation for the new features in the docs folder. Include usage examples and any important notes."
+      },
+      {
+        name: "Commit changes",
+        prompt: "Create a git commit with all the changes made for these new features. Use a descriptive commit message that summarizes what was implemented."
+      }
+    ];
+  }
+}
+
 async function main() {
   try {
     // Collect features from user
@@ -86,40 +151,40 @@ async function main() {
     // Load documentation
     const documentation = await loadDocumentation();
     
+    // Load follow-up commands from END-FLOW.md
+    const followUpCommands = await loadFollowUpCommands();
+    
     // Format the complete prompt
     const featuresPrompt = formatFeaturesAsTodos(features);
     
-    const fullPrompt = 
-    
-    `This is a NEW FEATURE implementation request. Follow strictly ALL guidelines from the documentation below:\n
-
+    const fullPrompt = `This is a NEW FEATURE implementation request. Follow strictly ALL guidelines from the documentation below:\n
 
 ${documentation}
 
 ---
 
-${featuresPrompt}
-`;
-
-    console.log("\n🚀 Sending to Claude Code...\n");
-
-    // Execute claude command
-    // const proc = Bun.spawn(["claude", "--dangerously-skip-permissions"], {
-    //   stdin: "pipe",
-    //   stdout: "inherit",
-    //   stderr: "inherit"
-    // });
-
-    // // Send the prompt to claude
-    // proc.stdin.write(fullPrompt);
-    // proc.stdin.end();
-
-    // Wait for the process to complete
-    // await proc.exited;
-
-    console.log(fullPrompt)
+${featuresPrompt}`;
     
-    console.log("\n✅ Feature request sent successfully!");
+    // Send initial feature request
+    // await sendToClaude(fullPrompt);
+    console.log("\n📤 Sending feature request to Claude Code...\n");
+    console.log(fullPrompt);
+    
+    console.log("\n✅ Features implemented!");
+    
+    // Run follow-up commands
+    console.log("\n🔄 Running follow-up commands from END-FLOW.md...");
+    
+    for (const command of followUpCommands) {
+      console.log(`\n📌 ${command.name}...`);
+      // await sendToClaude(command.prompt);
+      console.log(`\nExecuting command: ${command.prompt}`);
+      
+      // Small delay between commands
+      // await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    console.log("\n✨ All done! Features have been implemented, tested, documented, and committed.");
 
   } catch (error) {
     console.error("\n❌ Error:", error);

@@ -5,11 +5,9 @@
 - Responsive design for desktop and mobile
 - Accessible (WCAG 2.1 AA)
 
-
-
 FOR THE FRONTEND:
 
-/src
+/web
 │
 ├── /components        # All custom web components
 │   ├── /button

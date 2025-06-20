@@ -11,8 +11,9 @@ import { runGitCommit } from "./git.js";
  * predetermined follow-up commands.
  */
 
-async function collectFeatures(): Promise<string[]> {
+async function collectAndEnhanceFeatures(): Promise<string[]> {
   const features: string[] = [];
+  const CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY;
   
   console.log("🚀 New Feature Request Tool");
   console.log("===========================");
@@ -35,119 +36,82 @@ async function collectFeatures(): Promise<string[]> {
       break;
     }
     
-    features.push(feature.trim());
-    console.log(`✓ Added: "${feature.trim()}"\n`);
+    const trimmedFeature = feature.trim();
+    
+    // Try to enhance with AI if API key is available
+    if (CEREBRAS_API_KEY) {
+      console.log("\n🤖 Enhancing with AI...");
+      
+      try {
+        const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${CEREBRAS_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b",
+            stream: false,
+            max_tokens: 500,
+            temperature: 0.3,
+            top_p: 0.95,
+            messages: [
+              {
+                role: "system",
+                content: "You are a prompt enhancer. Take vague user requests and make them clear, specific instructions for an AI coder. Be concise but explicit. Return only the enhanced prompt text."
+              },
+              {
+                role: "user",
+                content: `The user wants to implement this feature: "${trimmedFeature}"\n\nExample: If user says "change index.html to say hi", you would enhance it to: "Replace all text content in the index.html file with 'hi', removing any existing content"\n\nNow enhance the user's request above. Return only the enhanced version.`
+              }
+            ]
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const enhancedFeature = data.choices[0].message.content.trim();
+        
+        // Check if enhancement is actually different
+        if (enhancedFeature === trimmedFeature) {
+          console.log(`\n⚠️  AI returned the same text - no enhancement made`);
+          features.push(trimmedFeature);
+          console.log(`✓ Added: "${trimmedFeature}"\n`);
+        } else {
+          // Show both versions when AI provides an enhancement
+          console.log(`\n📝 Feature Enhancement:`);
+          console.log(`  Original: ${trimmedFeature}`);
+          console.log(`  Enhanced: ${enhancedFeature}`);
+          
+          const choice = prompt("\nUse enhanced version? (y/n, default: y): ") || "y";
+          
+          if (choice.toLowerCase() === 'y') {
+            features.push(enhancedFeature);
+            console.log(`✓ Added enhanced version\n`);
+          } else {
+            features.push(trimmedFeature);
+            console.log(`✓ Added original version\n`);
+          }
+        }
+        
+      } catch (error) {
+        console.log(`⚠️  AI enhancement failed: ${error.message}`);
+        features.push(trimmedFeature);
+        console.log(`✓ Added: "${trimmedFeature}"\n`);
+      }
+    } else {
+      // No API key, just add the feature
+      features.push(trimmedFeature);
+      console.log(`✓ Added: "${trimmedFeature}"\n`);
+    }
   }
   
   return features;
 }
 
-// Enhance features using Cerebras AI
-async function enhanceFeatures(features: string[]): Promise<{ original: string; enhanced: string }[]> {
-  const CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY;
-  
-  if (!CEREBRAS_API_KEY) {
-    console.log("\n⚠️  CEREBRAS_API_KEY not found. Skipping AI enhancement.");
-    return features.map(f => ({ original: f, enhanced: f }));
-  }
-  
-  console.log("\n🤖 Enhancing features with AI...");
-  
-  const enhancedFeatures: { original: string; enhanced: string }[] = [];
-  
-  for (let i = 0; i < features.length; i++) {
-    const feature = features[i];
-    console.log(`   Processing feature ${i + 1}/${features.length}...`);
-    
-    try {
-      const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${CEREBRAS_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "qwen-3-32b",
-          stream: false,
-          max_tokens: 16382,
-          temperature: 0.7,
-          top_p: 0.95,
-          messages: [
-            {
-              role: "system",
-              content: "you make prompts look better"
-            },
-            {
-              role: "user",
-              content: `this is the prompt of the user to implement this feature, can you make it more clear and better so we can send to claude code? return in JSON only. prompt = ${feature}`
-            }
-          ]
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      const content = data.choices[0].message.content;
-      
-      // Extract JSON from the response
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const enhanced = JSON.parse(jsonMatch[0]);
-        enhancedFeatures.push({ 
-          original: feature, 
-          enhanced: enhanced.task || feature 
-        });
-      } else {
-        enhancedFeatures.push({ original: feature, enhanced: feature });
-      }
-      
-    } catch (error) {
-      console.log(`   ⚠️  Failed to enhance feature ${i + 1}: ${error.message}`);
-      enhancedFeatures.push({ original: feature, enhanced: feature });
-    }
-  }
-  
-  return enhancedFeatures;
-}
-
-// Ask user to choose between original and enhanced features
-async function selectFeatures(enhancedFeatures: { original: string; enhanced: string }[]): Promise<string[]> {
-  const selectedFeatures: string[] = [];
-  
-  console.log("\n📝 Feature Enhancement Results");
-  console.log("==============================\n");
-  
-  for (let i = 0; i < enhancedFeatures.length; i++) {
-    const { original, enhanced } = enhancedFeatures[i];
-    
-    if (original === enhanced) {
-      // No enhancement made
-      selectedFeatures.push(original);
-      console.log(`Feature ${i + 1}: ${original}`);
-      console.log("(No AI enhancement available)\n");
-    } else {
-      // Show both versions
-      console.log(`Feature ${i + 1}:`);
-      console.log(`  Original: ${original}`);
-      console.log(`  Enhanced: ${enhanced}`);
-      
-      const choice = prompt("\nUse enhanced version? (y/n, default: y): ") || "y";
-      
-      if (choice.toLowerCase() === 'y') {
-        selectedFeatures.push(enhanced);
-        console.log("✓ Using enhanced version\n");
-      } else {
-        selectedFeatures.push(original);
-        console.log("✓ Using original version\n");
-      }
-    }
-  }
-  
-  return selectedFeatures;
-}
 
 async function loadDocumentation(): Promise<string> {
   const docsDir = join(process.cwd(), "prompts");
@@ -284,7 +248,7 @@ async function loadFollowUpCommands(): Promise<string> {
 
 // Generate markdown summary from session data
 async function generateMarkdownSummary(sessionSummary: any): Promise<string> {
-  const { sessionId, timestamp, selectedFeatures, responses, gitResult } = sessionSummary;
+  const { sessionId, timestamp, features, responses, gitResult } = sessionSummary;
   
   let markdown = `## 🚀 Feature Implementation Session\n\n`;
   markdown += `**Session ID:** ${sessionId}\n`;
@@ -292,7 +256,7 @@ async function generateMarkdownSummary(sessionSummary: any): Promise<string> {
   
   // Features requested
   markdown += `### 📋 Features Implemented\n\n`;
-  selectedFeatures.forEach((feature: string, index: number) => {
+  features.forEach((feature: string, index: number) => {
     markdown += `${index + 1}. ${feature}\n`;
   });
   markdown += `\n`;
@@ -371,14 +335,8 @@ async function main() {
     
     console.log(`\n📅 Session ID: ${sessionId}`);
     
-    // Collect features from user
-    const rawFeatures = await collectFeatures();
-    
-    // Enhance features with AI if available
-    const enhancedFeatures = await enhanceFeatures(rawFeatures);
-    
-    // Let user select between original and enhanced versions
-    const features = await selectFeatures(enhancedFeatures);
+    // Collect and enhance features from user
+    const features = await collectAndEnhanceFeatures();
     
     console.log("\n📋 Final features to implement:");
     features.forEach((feature, index) => {
@@ -408,9 +366,7 @@ async function main() {
     const sessionData = {
       sessionId,
       timestamp: now.toISOString(),
-      originalFeatures: rawFeatures,
-      enhancedFeatures: enhancedFeatures,
-      selectedFeatures: features,
+      features,
       prompts: {
         featureImplementation: featureImplementationPrompt,
         endWorkflow: null // Will be set later

@@ -43,7 +43,12 @@ async function collectFeatures(): Promise<string[]> {
 
 async function loadDocumentation(): Promise<string> {
   const docsDir = join(process.cwd(), "prompts");
-  const requiredFiles = ["GENERAL-GUIDELINES.md", "NEW FEATURES.md"];
+  const requiredFiles = [
+    "GENERAL-GUIDELINES.md", 
+    "BACKEND-GUIDELINES.md", 
+    "FRONTEND-GUIDELINES.md",
+    "NEW FEATURES.md"
+  ];
   const documents: string[] = [];
   
   console.log("\n📂 Loading project information...");
@@ -141,23 +146,7 @@ async function loadFollowUpCommands(): Promise<Array<{name: string, prompt: stri
     const content = await readFile(endFlowPath, "utf-8");
     console.log("  ✓ Loaded END-FLOW.md");
     
-    // Parse the markdown file to extract commands
-    const lines = content.split('\n');
-    const commands: Array<{name: string, prompt: string}> = [];
-    
-    for (const line of lines) {
-      // Match numbered list items (e.g., "1. Command description")
-      const match = line.match(/^\d+\.\s+\*\*(.+?)\*\*\s*-?\s*(.+)$/);
-      if (match) {
-        const [_, name, description] = match;
-        commands.push({
-          name: name.trim(),
-          prompt: `${description.trim()}`
-        });
-      }
-    }
-    
-    return commands;
+    return content
   } catch (error) {
     console.log("  ⚠️  Could not load END-FLOW.md, ignoring follow-up commands.");
     
@@ -192,6 +181,7 @@ async function main() {
     // Step 1: Send feature implementation request
     console.log("\n🚀 Step 1: Implementing features...");
     await sendToClaude(featureImplementationPrompt, false);
+    // console.log(featureImplementationPrompt)
     
     console.log("\n✅ Features implemented!");
     
@@ -200,14 +190,13 @@ async function main() {
     
     let endWorkflowPrompt = '---- \n\nNow that the features are implemented, please execute the following post-implementation checklist:\n\n';
     
-    followUpCommands.forEach((command, index) => {
-      endWorkflowPrompt += `${index + 1}. **${command.name}**: ${command.prompt}\n`;
-    });
+    endWorkflowPrompt += await loadFollowUpCommands()
     
     endWorkflowPrompt += '\n\nPlease go through each checklist item in order and ensure all quality gates are met.';
     
     // Continue the conversation with end workflow tasks
     await sendToClaude(endWorkflowPrompt, true);
+    // console.log(endWorkflowPrompt);
 
     console.log("\n✅ Post-implementation checklist completed!");
 

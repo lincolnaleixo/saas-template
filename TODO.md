@@ -11,6 +11,8 @@ Criar um script para isso: perguntaria se é nova feature , improvement ou bugfi
 - escolher library de css e deixar claro no frontend
 - perguntar e resolver como seria com a api , queria ter um lugar para testar a api e automaticamente se possivel atualizar o documentation baseado no codigo que tenho (tem alguma ligrary para isso?)
 
+- pensar se o git vai continuar a fazer o backup e o generate docs tambem, perguntar
+
 o flow seria
 - pergunta sobre as features
 - implementa

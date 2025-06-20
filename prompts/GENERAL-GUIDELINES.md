@@ -8,12 +8,12 @@ This document defines the tech stack, architectural principles, and coding stand
 | -------- | ---------------------------------------------------------------- |
 | Runtime  | **Bun 1.x** – ESM, hot reload, built‑in test runner              |
 | Language | **TypeScript 5** targeting `es2022`                              |
-| Database | **Postgres + pgvector** via Bun's native `sql` client           |
+| Database | **Postgres + pgvector** via Bun's native `sql` client            |
 | ORM      | **Drizzle** – pure TS, zero build                                |
 | Auth     | **Lucia** – fetch‑based middleware only                          |
 | UI       | **HTML + HTMX + Web Components** shipped as ES modules           |
 | Styling  | CDN CSS (**Picocss**) – no tooling                               |
-| Dev Ops  | Docker (`oven/bun` image) deploying to Fly.io, Railway or Render |
+| Dev Ops  | Docker (`oven/bun` image) deploying to a debian server           |
 
 ## 📂 Recommended Folder Layout
 

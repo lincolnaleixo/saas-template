@@ -232,7 +232,8 @@ async function main() {
     
     const endFlowContent = await loadFollowUpCommands();
     
-    let endWorkflowPrompt = '---- \n\nNow that the features are implemented, please execute the following post-implementation checklist:\n\n';
+    // Remove the problematic ---- prefix
+    let endWorkflowPrompt = 'Now that the features are implemented, please execute the following post-implementation checklist:\n\n';
     endWorkflowPrompt += endFlowContent;
     endWorkflowPrompt += '\n\nPlease go through each checklist item in order and ensure all quality gates are met.';
     

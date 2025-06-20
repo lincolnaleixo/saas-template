@@ -41,17 +41,23 @@ async function collectFeatures(): Promise<string[]> {
 }
 
 async function loadDocumentation(): Promise<string> {
-  const docsDir = join(process.cwd(), "docs");
-  const requiredFiles = ["ABOUT.md", "GENERAL-GUIDELINES.md", "NEW FEATURES.md"];
+  const docsDir = join(process.cwd(), "prompts");
+  const requiredFiles = ["GENERAL-GUIDELINES.md", "NEW FEATURES.md"];
   const documents: string[] = [];
   
+  console.log("\n📂 Loading project information...");
+
+  const aboutFile = join(process.cwd(), "docs", "ABOUT.md");
+  const content = await readFile(aboutFile, "utf-8");
+  documents.push(`\n\n${content}`);
+
   console.log("\n📚 Loading project documentation...");
   
   for (const file of requiredFiles) {
     const filePath = join(docsDir, file);
     try {
       const content = await readFile(filePath, "utf-8");
-      documents.push(`### Document: ${file}\n\n${content}`);
+      documents.push(`\n\n${content}`);
       console.log(`  ✓ Loaded ${file}`);
     } catch (error) {
       console.log(`  ⚠️  Could not load ${file}`);
@@ -63,7 +69,7 @@ async function loadDocumentation(): Promise<string> {
     process.exit(1);
   }
   
-  return documents.join("\n\n---\n\n");
+  return documents.join("");
 }
 
 function formatFeaturesAsTodos(features: string[]): string {
@@ -94,7 +100,7 @@ async function sendToClaude(prompt: string): Promise<void> {
 
 // Load follow-up commands from END-FLOW.md
 async function loadFollowUpCommands(): Promise<Array<{name: string, prompt: string}>> {
-  const endFlowPath = join(process.cwd(), "docs", "END-FLOW.md");
+  const endFlowPath = join(process.cwd(), "prompts", "END-FLOW.md");
   
   try {
     const content = await readFile(endFlowPath, "utf-8");
@@ -118,23 +124,9 @@ async function loadFollowUpCommands(): Promise<Array<{name: string, prompt: stri
     
     return commands;
   } catch (error) {
-    console.log("  ⚠️  Could not load END-FLOW.md, using default commands");
+    console.log("  ⚠️  Could not load END-FLOW.md, ignoring follow-up commands.");
     
-    // Fallback to default commands if file not found
-    return [
-      {
-        name: "Check implementation",
-        prompt: "Please review what was implemented and confirm all features are working correctly. Run any necessary tests."
-      },
-      {
-        name: "Document the features",
-        prompt: "Create or update documentation for the new features in the docs folder. Include usage examples and any important notes."
-      },
-      {
-        name: "Commit changes",
-        prompt: "Create a git commit with all the changes made for these new features. Use a descriptive commit message that summarizes what was implemented."
-      }
-    ];
+    return [];
   }
 }
 
@@ -157,13 +149,10 @@ async function main() {
     // Format the complete prompt
     const featuresPrompt = formatFeaturesAsTodos(features);
     
-    const fullPrompt = `This is a NEW FEATURE implementation request. Follow strictly ALL guidelines from the documentation below:\n
-
-${documentation}
-
----
-
-${featuresPrompt}`;
+    let fullPrompt = 'This is a NEW FEATURE implementation request';
+    fullPrompt += `Follow strictly ALL guidelines from the documentation below:`;
+    fullPrompt += `${documentation}\n\n`;
+    fullPrompt += `\n\n${featuresPrompt}\n\n`;
     
     // Send initial feature request
     // await sendToClaude(fullPrompt);

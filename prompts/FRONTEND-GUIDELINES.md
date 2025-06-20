@@ -7,7 +7,7 @@
 
 FOR THE FRONTEND:
 
-/web
+/frontend
 │
 ├── /components        # All custom web components
 │   ├── /button

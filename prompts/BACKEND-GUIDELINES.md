@@ -54,11 +54,21 @@
 * `openapi.json` is committed to the repository so Claude and other AIs can always read the current contract
 
 
+│  ├─ server.ts                ← Bun.serve entry
+│  ├─ routes/
+│  │   ├─ _manifest.ts         ← auto‑generated registry
+│  │   └─ healthcheck.ts       ← example GET /health
+│  ├─ jobs/
+│  │   └─ nightly‑summary.ts   ← cron demo
+│  ├─ lib/
+│  │   ├─ db.ts                ← Drizzle client & helpers
+│  │   └─ auth.ts              ← Lucia session helpers
 
 FOR THE API:
 
 Use organized structure , like:
 
+/backend
 ├── /routes          # Route definitions (maps URL paths to controllers)
 │   ├── index.ts     # Main route file
 │   └── userRoutes.ts

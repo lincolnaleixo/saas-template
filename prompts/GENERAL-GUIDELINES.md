@@ -19,42 +19,26 @@ This document defines the tech stack, architectural principles, and coding stand
 
 ````text
 my‑saas/
-├─ src/
-│  ├─ server.ts                ← Bun.serve entry
-│  ├─ routes/
-│  │   ├─ _manifest.ts         ← auto‑generated registry
-│  │   └─ healthcheck.ts       ← example GET /health
-│  ├─ jobs/
-│  │   └─ nightly‑summary.ts   ← cron demo
-│  ├─ lib/
-│  │   ├─ db.ts                ← Drizzle client & helpers
-│  │   ├─ ai.ts                ← Claude/OpenAI wrapper
-│  │   └─ auth.ts              ← Lucia session helpers
-│  └─ web/
-│      ├─ index.html           ← base HTML + PicoCSS + import‑map
-│      ├─ import‑map.json      ← CDN resolves
-│      ├─ components/
-│      └─ assets/              ← icons, favicons
+├─ backend/                    ← More details on BACKEND-GUIDELINES.md
 ├─ static/
 │  ├─ util.css                 ← hand‑rolled utility classes
 │  └─ images/                  ← logo, hero, etc.
-├─ scripts/
-│  ├─ create-feature.ts        ← Claude scaffolder
-│  ├─ fix-bugs.ts              ← Claude scaffolder
-│  ├─ migrate.ts               ← database migrations
-│  └─ seed.ts                  ← seed data
+├─ dev/                        ← Claude scaffolder for development
+│  ├─ fix-bugs.ts              ← For fixing bugs
+│  ├─ new-feature.ts           ← To implement new features
+│  ├─ improve-feature.ts       ← To improve existant features
+│  ├─ generate-docs.ts         ← To generate specific docs
+├─ docs/                       ← documentation about the project
+├─ frontend/                   ← More details on FRONTEND-GUIDELINES.md
 ├─ prompts/                    ← prompt snippets for Claude
-│  ├─ style‑guide.md
-│  └─ db‑access.md
+├─ scripts/
+│  ├─ dev.sh                   ← To run project in development
+│  ├─ prod.sh                  ← To run project in production
 ├─ tests/                      ← bun test specs
-│  └─ server.test.ts
 ├─ .env.example
-├─ .editorconfig
+├─ .env.local
 ├─ .gitignore
-├─ bunfig.toml
-├─ tsconfig.json
 ├─ README.md
-└─ Dockerfile
 ````
 
 ## Critical Development Rules

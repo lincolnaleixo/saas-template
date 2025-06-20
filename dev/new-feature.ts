@@ -98,31 +98,38 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
   const args = [
     "claude", 
     "--dangerously-skip-permissions",
-    "--output-format", "json",
-    "--print", prompt
+    "--output-format", "json"
   ];
   
   // Add continue flag if this is a follow-up
   if (continueConversation) {
     args.splice(2, 0, "--continue"); // Insert after 'claude' and before other flags
   }
+  
+  // Add the print flag and prompt as separate arguments
+  args.push("--print");
+  args.push(prompt);
 
   // Execute claude command in non-interactive mode
   const proc = Bun.spawn(args, {
     stdout: "pipe",
-    stderr: "inherit"
+    stderr: "pipe"
   });
 
   // Sent prompt to Claude
   console.log(`📜 Prompt sent to Claude. Let them code`);
 
-  // Collect the output
-  const output = await new Response(proc.stdout).text();
+  // Collect the output and errors
+  const [output, errorOutput] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text()
+  ]);
   
   // Wait for the process to complete
   const exitCode = await proc.exited;
   
   if (exitCode !== 0) {
+    console.error("Command failed with stderr:", errorOutput);
     throw new Error(`Claude command failed with exit code ${exitCode}`);
   }
   
@@ -154,18 +161,18 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
 }
 
 // Load follow-up commands from END-FLOW.md
-async function loadFollowUpCommands(): Promise<Array<{name: string, prompt: string}>> {
+async function loadFollowUpCommands(): Promise<string> {
   const endFlowPath = join(process.cwd(), "prompts", "END-FLOW.md");
   
   try {
     const content = await readFile(endFlowPath, "utf-8");
     console.log("  ✓ Loaded END-FLOW.md");
     
-    return content
+    return content;
   } catch (error) {
     console.log("  ⚠️  Could not load END-FLOW.md, ignoring follow-up commands.");
     
-    return [];
+    return "";
   }
 }
 
@@ -224,10 +231,10 @@ async function main() {
     // Step 2: Send end workflow tasks using --continue
     console.log("\n🔄 Step 2: Running post-implementation checklist...");
     
+    const endFlowContent = await loadFollowUpCommands();
+    
     let endWorkflowPrompt = '---- \n\nNow that the features are implemented, please execute the following post-implementation checklist:\n\n';
-    
-    endWorkflowPrompt += await loadFollowUpCommands()
-    
+    endWorkflowPrompt += endFlowContent;
     endWorkflowPrompt += '\n\nPlease go through each checklist item in order and ensure all quality gates are met.';
     
     sessionData.prompts.endWorkflow = endWorkflowPrompt;

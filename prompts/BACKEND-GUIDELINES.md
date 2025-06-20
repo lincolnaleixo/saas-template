@@ -41,87 +41,149 @@ The project uses a **separate worker service** for background jobs:
 
 Both services share the same codebase but run as separate Docker containers.
 
-### Database-Driven Job Configuration
+### Job Configuration Strategy
 
-Jobs are stored in the database for dynamic management:
+**Recommended: File-based job definitions with database scheduling**
 
-```sql
--- Example job_definitions table
-CREATE TABLE job_definitions (
-  id UUID PRIMARY KEY,
-  name VARCHAR(255) UNIQUE NOT NULL,
-  type VARCHAR(50) NOT NULL, -- 'cron', 'repeat', 'once'
-  cron_expression VARCHAR(100),
-  repeat_interval INTEGER, -- milliseconds
-  config JSONB DEFAULT '{}',
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- User-specific job instances
-CREATE TABLE user_jobs (
-  id UUID PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES users(id),
-  job_definition_id UUID NOT NULL REFERENCES job_definitions(id),
-  last_run_at TIMESTAMP,
-  next_run_at TIMESTAMP,
-  status VARCHAR(50) DEFAULT 'pending',
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-### Job Implementation Pattern
+Jobs are defined in code for type safety and version control, with scheduling stored in database:
 
 ```typescript
-// worker/jobs/sync-user-data.ts
-export async function syncUserData(job: Job) {
-  const { userId, config } = job.data;
-  
-  // Load user-specific settings from database
-  const userJob = await db.query.userJobs.findFirst({
-    where: eq(userJobs.userId, userId)
+// worker/jobs/index.ts - All jobs defined in one place
+export const jobDefinitions = {
+  'sync-user-data': {
+    handler: async (job: Job) => {
+      const { userId } = job.data;
+      // Job logic here
+      await syncUserData(userId);
+    },
+    defaultConfig: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 }
+    }
+  },
+  'send-email': {
+    handler: async (job: Job) => {
+      const { to, subject, body } = job.data;
+      await emailService.send({ to, subject, body });
+    },
+    defaultConfig: {
+      attempts: 5,
+      removeOnComplete: true
+    }
+  },
+  'cleanup-old-data': {
+    handler: async (job: Job) => {
+      await cleanupService.removeOldRecords();
+    },
+    defaultConfig: {
+      attempts: 1
+    }
+  }
+} as const;
+
+export type JobName = keyof typeof jobDefinitions;
+```
+
+### Database Schema for Scheduling
+
+```sql
+-- User-specific job schedules (not job logic!)
+CREATE TABLE user_job_schedules (
+  id UUID PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id),
+  job_name VARCHAR(50) NOT NULL, -- must match jobDefinitions keys
+  cron_expression VARCHAR(100),
+  is_active BOOLEAN DEFAULT true,
+  config JSONB DEFAULT '{}', -- job-specific data
+  last_run_at TIMESTAMP,
+  next_run_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, job_name)
+);
+```
+
+### Worker Implementation
+
+```typescript
+// worker/index.ts - Worker entry point
+import { Worker, Queue } from 'bullmq';
+import { jobDefinitions } from './jobs';
+import { redis } from '@/lib/redis';
+import { db } from '@/lib/db';
+
+// Create queue instance
+const queue = new Queue('jobs', { connection: redis });
+
+// Register all job handlers from code
+Object.entries(jobDefinitions).forEach(([jobName, definition]) => {
+  new Worker(jobName, definition.handler, {
+    connection: redis,
+    ...definition.defaultConfig
   });
-  
-  // Process the job
-  await performSync(userId, userJob.metadata);
-  
-  // Update last run timestamp
-  await db.update(userJobs)
-    .set({ lastRunAt: new Date() })
-    .where(eq(userJobs.id, userJob.id));
+});
+
+// Load user schedules from database and create cron jobs
+async function loadUserSchedules() {
+  const schedules = await db.query.userJobSchedules.findMany({
+    where: eq(userJobSchedules.isActive, true)
+  });
+
+  for (const schedule of schedules) {
+    if (schedule.cronExpression) {
+      await queue.add(
+        schedule.jobName,
+        { 
+          userId: schedule.userId,
+          ...schedule.config 
+        },
+        {
+          repeat: {
+            pattern: schedule.cronExpression
+          },
+          jobId: `${schedule.jobName}-${schedule.userId}`
+        }
+      );
+    }
+  }
 }
 
-// worker/index.ts - Worker entry point
-import { Worker } from 'bullmq';
+// Initialize schedules on startup
+await loadUserSchedules();
 
-// Load job definitions from database on startup
-const jobDefs = await db.query.jobDefinitions.findMany({
-  where: eq(jobDefinitions.isActive, true)
-});
-
-// Register workers for each job type
-jobDefs.forEach(def => {
-  new Worker(def.name, async (job) => {
-    const handler = await import(`./jobs/${def.name}`);
-    return handler.default(job);
-  }, {
-    connection: redis,
-    concurrency: 10
-  });
-});
+// Reload schedules when needed (via API endpoint)
+export async function reloadSchedules() {
+  // Remove all repeatable jobs
+  const repeatableJobs = await queue.getRepeatableJobs();
+  for (const job of repeatableJobs) {
+    await queue.removeRepeatableByKey(job.key);
+  }
+  // Reload from database
+  await loadUserSchedules();
+}
 ```
+
+### Why This Approach?
+
+**Jobs in Files + Scheduling in Database = Best of Both Worlds**
+
+| Aspect | Benefit |
+| ------ | ------- |
+| **Type Safety** | Job definitions are typed and validated at compile time |
+| **Version Control** | All job logic is tracked in git |
+| **Testing** | Easy to unit test job handlers |
+| **Security** | No arbitrary code execution from database |
+| **Flexibility** | Schedules can be changed without deployment |
+| **Multi-tenant** | Each user gets their own schedule |
 
 ### Job Management Features
 
 | Feature | Description |
 | ------- | ----------- |
-| **Dynamic Registration** | Jobs loaded from database at worker startup |
-| **Per-User Configuration** | Each user can have custom job settings |
-| **Runtime Updates** | Enable/disable jobs without code changes |
+| **Central Definition** | All jobs in one file for easy discovery |
+| **Per-User Scheduling** | Each user can have different cron schedules |
+| **Runtime Control** | Enable/disable schedules without code changes |
 | **Audit Trail** | Track job execution history in database |
-| **Multi-Tenant** | Different job schedules per user/tenant |
+| **Type Safety** | Full TypeScript support for job data |
 
 ### Monitoring
 Access Bull Board at `http://localhost:3001` to monitor:
@@ -161,12 +223,12 @@ backend/
 
 worker/                  # Separate worker service
 ├── index.ts            # Worker entry point
-├── jobs/               # Job handlers
-│   ├── sync-data.ts
-│   ├── send-email.ts
-│   └── cleanup.ts
-└── lib/               # Shared utilities
-    └── job-loader.ts  # Database job loader
+├── jobs/               
+│   └── index.ts       # All job definitions in one file
+└── services/          # Job-specific services
+    ├── sync.service.ts
+    ├── email.service.ts
+    └── cleanup.service.ts
 ```
 
 ## 🛠️ Development Standards
@@ -251,40 +313,55 @@ await db.insert(usersTable).values({ name: 'John' });
 ### Creating Jobs (from API)
 ```typescript
 import { queue } from '@/lib/queue';
+import type { JobName } from '@/worker/jobs';
 
-// One-time job
-await queue.add('send-email', {
+// One-time job (job name must exist in jobDefinitions)
+await queue.add<JobName>('send-email', {
   to: 'user@example.com',
-  subject: 'Welcome!'
+  subject: 'Welcome!',
+  body: 'Thanks for signing up!'
 });
 
-// Repeating job for user
-await queue.add('sync-user-data', 
-  { userId: user.id },
-  { 
-    repeat: { 
-      pattern: userJob.cronExpression 
-    }
-  }
-);
+// User-scheduled jobs are managed via database
+// First, create the schedule in DB:
+await db.insert(userJobSchedules).values({
+  userId: user.id,
+  jobName: 'sync-user-data',
+  cronExpression: '0 0 * * *', // Daily at midnight
+  config: { syncType: 'incremental' }
+});
+
+// Then reload schedules to activate
+await reloadSchedules();
 ```
 
-### Database-Driven Job Management
+### Managing User Job Schedules
 ```typescript
-// Enable/disable jobs at runtime
-await db.update(jobDefinitions)
-  .set({ isActive: false })
-  .where(eq(jobDefinitions.name, 'daily-report'));
-
-// Update user job schedule
-await db.update(userJobs)
-  .set({ 
-    metadata: { 
-      ...userJob.metadata, 
-      syncInterval: '0 */6 * * *' // Every 6 hours
-    }
+// Create/update user schedule
+await db.insert(userJobSchedules)
+  .values({
+    userId: user.id,
+    jobName: 'sync-user-data',
+    cronExpression: '0 */6 * * *', // Every 6 hours
+    config: { syncType: 'full' }
   })
-  .where(eq(userJobs.userId, userId));
+  .onConflictDoUpdate({
+    target: [userJobSchedules.userId, userJobSchedules.jobName],
+    set: { cronExpression: '0 */6 * * *' }
+  });
+
+// Disable user's job
+await db.update(userJobSchedules)
+  .set({ isActive: false })
+  .where(
+    and(
+      eq(userJobSchedules.userId, userId),
+      eq(userJobSchedules.jobName, 'sync-user-data')
+    )
+  );
+
+// Reload schedules after changes
+await reloadSchedules();
 ```
 
 ### Authentication Check

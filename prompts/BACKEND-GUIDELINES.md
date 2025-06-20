@@ -19,14 +19,26 @@ See `workflow.md` for detailed migration procedures.
 
 ## 🚀 Cache & Job Queue
 
-### Redis Architecture
+### Cache Architecture (Redis)
 
 | Component | Purpose |
 | --------- | ------- |
 | **Sessions** | Ephemeral user session storage |
 | **Rate Limiting** | API rate limit counters |
-| **BullMQ** | Background job queue management |
-| **Pub/Sub** | Real-time event broadcasting (optional) |
+| **Pub/Sub** | Real-time event broadcasting |
+| **Hot Data** | Frequently accessed data cache |
+
+### Job Queue Architecture (PostgreSQL-based)
+
+**Recommended: pg-boss or graphile-worker** - Uses PostgreSQL for job queuing instead of Redis
+
+| Benefit | Description |
+| ------- | ----------- |
+| **Single Database** | No additional infrastructure needed |
+| **ACID Guarantees** | Reliable job processing with transactions |
+| **Built-in History** | Automatic job archival and audit trail |
+| **SQL Monitoring** | Query job status with familiar SQL |
+| **Cost Effective** | No separate Redis cluster for jobs |
 
 ## ⏰ Worker & Job Management
 
@@ -41,63 +53,101 @@ The project uses a **separate worker service** for background jobs:
 
 Both services share the same codebase but run as separate Docker containers.
 
-### Job Configuration Strategy
+### Job Implementation with pg-boss
 
-**Recommended: File-based job definitions with database scheduling**
-
-Jobs are defined in code for type safety and version control, with scheduling stored in database:
+**PostgreSQL-based job queue with pg-boss for reliability and simplicity**
 
 ```typescript
-// worker/jobs/index.ts - All jobs defined in one place
-export const jobDefinitions = {
-  'sync-user-data': {
-    handler: async (job: Job) => {
-      const { userId } = job.data;
-      // Job logic here
-      await syncUserData(userId);
-    },
-    defaultConfig: {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 5000 }
-    }
+// backend/lib/jobs.ts - Initialize pg-boss
+import PgBoss from 'pg-boss';
+
+export const boss = new PgBoss({
+  connectionString: process.env.DATABASE_URL,
+  schema: 'pgboss',
+  
+  // Archive completed jobs for 30 days
+  archiveCompletedAfterSeconds: 60 * 60 * 24 * 30,
+  
+  // Monitor configuration
+  monitorStateIntervalSeconds: 10,
+});
+
+// Start the job queue
+await boss.start();
+
+// Define job handlers with progress tracking
+export const jobHandlers = {
+  'sync-user-data': async (job: PgBoss.Job<{ userId: string; tenantId: string }>) => {
+    const { userId } = job.data;
+    
+    // Update user-visible job status
+    await updateJobProgress(job.id, userId, 0, 'Starting sync...');
+    
+    // Perform the actual work
+    const result = await syncUserData(userId, (progress) => {
+      updateJobProgress(job.id, userId, progress, `Syncing... ${progress}%`);
+    });
+    
+    await updateJobProgress(job.id, userId, 100, 'Sync completed');
+    return result;
   },
-  'send-email': {
-    handler: async (job: Job) => {
-      const { to, subject, body } = job.data;
-      await emailService.send({ to, subject, body });
-    },
-    defaultConfig: {
-      attempts: 5,
-      removeOnComplete: true
-    }
+  
+  'send-email': async (job: PgBoss.Job<EmailData>) => {
+    const { to, subject, body } = job.data;
+    return await emailService.send({ to, subject, body });
   },
-  'cleanup-old-data': {
-    handler: async (job: Job) => {
-      await cleanupService.removeOldRecords();
-    },
-    defaultConfig: {
-      attempts: 1
-    }
+  
+  'generate-report': async (job: PgBoss.Job<ReportData>) => {
+    const { userId, reportType } = job.data;
+    return await reportService.generate(userId, reportType);
   }
 } as const;
 
-export type JobName = keyof typeof jobDefinitions;
+export type JobName = keyof typeof jobHandlers;
+
+// Register all job handlers
+for (const [jobName, handler] of Object.entries(jobHandlers)) {
+  await boss.work(jobName, { teamSize: 5, teamConcurrency: 2 }, handler);
+}
 ```
 
-### Database Schema for Scheduling
+### Database Schema for Job Management
 
 ```sql
--- User-specific job schedules (not job logic!)
-CREATE TABLE user_job_schedules (
-  id UUID PRIMARY KEY,
+-- User-visible job status (separate from pg-boss internal tables)
+CREATE TABLE user_job_status (
+  id UUID PRIMARY KEY, -- matches pg-boss job id
   user_id UUID NOT NULL REFERENCES users(id),
-  job_name VARCHAR(50) NOT NULL, -- must match jobDefinitions keys
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  job_type VARCHAR(50) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending', -- 'pending', 'running', 'completed', 'failed'
+  progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+  message TEXT,
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  error_message TEXT,
+  result JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  -- Indexes for fast queries
+  INDEX idx_user_status (user_id, status, created_at DESC),
+  INDEX idx_tenant_jobs (tenant_id, created_at DESC)
+);
+
+-- User-specific job schedules
+CREATE TABLE user_job_schedules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id),
+  job_name VARCHAR(50) NOT NULL, -- must match jobHandlers keys
   cron_expression VARCHAR(100),
   is_active BOOLEAN DEFAULT true,
   config JSONB DEFAULT '{}', -- job-specific data
-  last_run_at TIMESTAMP,
-  next_run_at TIMESTAMP,
-  created_at TIMESTAMP DEFAULT NOW(),
+  timezone VARCHAR(50) DEFAULT 'UTC',
+  last_run_at TIMESTAMPTZ,
+  next_run_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  
   UNIQUE(user_id, job_name)
 );
 ```
@@ -106,23 +156,13 @@ CREATE TABLE user_job_schedules (
 
 ```typescript
 // worker/index.ts - Worker entry point
-import { Worker, Queue } from 'bullmq';
-import { jobDefinitions } from './jobs';
-import { redis } from '@/lib/redis';
-import { db } from '@/lib/db';
+import { boss, jobHandlers } from '@/backend/lib/jobs';
+import { db } from '@/backend/lib/db';
 
-// Create queue instance
-const queue = new Queue('jobs', { connection: redis });
+// Start pg-boss and begin processing jobs
+await boss.start();
 
-// Register all job handlers from code
-Object.entries(jobDefinitions).forEach(([jobName, definition]) => {
-  new Worker(jobName, definition.handler, {
-    connection: redis,
-    ...definition.defaultConfig
-  });
-});
-
-// Load user schedules from database and create cron jobs
+// Load and schedule user cron jobs from database
 async function loadUserSchedules() {
   const schedules = await db.query.userJobSchedules.findMany({
     where: eq(userJobSchedules.isActive, true)
@@ -130,17 +170,20 @@ async function loadUserSchedules() {
 
   for (const schedule of schedules) {
     if (schedule.cronExpression) {
-      await queue.add(
-        schedule.jobName,
+      // Create unique schedule name per user
+      const scheduleName = `${schedule.jobName}-user-${schedule.userId}`;
+      
+      await boss.schedule(
+        scheduleName,
+        schedule.cronExpression,
+        schedule.jobName, // actual job to run
         { 
           userId: schedule.userId,
           ...schedule.config 
         },
-        {
-          repeat: {
-            pattern: schedule.cronExpression
-          },
-          jobId: `${schedule.jobName}-${schedule.userId}`
+        { 
+          tz: schedule.timezone,
+          singletonKey: scheduleName // Prevent duplicate schedules
         }
       );
     }
@@ -150,15 +193,33 @@ async function loadUserSchedules() {
 // Initialize schedules on startup
 await loadUserSchedules();
 
-// Reload schedules when needed (via API endpoint)
-export async function reloadSchedules() {
-  // Remove all repeatable jobs
-  const repeatableJobs = await queue.getRepeatableJobs();
-  for (const job of repeatableJobs) {
-    await queue.removeRepeatableByKey(job.key);
-  }
-  // Reload from database
-  await loadUserSchedules();
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('Worker shutting down...');
+  await boss.stop();
+  process.exit(0);
+});
+
+// Helper function to update job progress (used in handlers)
+export async function updateJobProgress(
+  jobId: string,
+  userId: string,
+  progress: number,
+  message: string
+) {
+  await db.upsert(userJobStatus)
+    .values({
+      id: jobId,
+      userId,
+      progress,
+      message,
+      status: progress === 100 ? 'completed' : 'running',
+      updatedAt: new Date()
+    })
+    .onConflictDoUpdate({
+      target: userJobStatus.id,
+      set: { progress, message, updatedAt: new Date() }
+    });
 }
 ```
 
@@ -186,11 +247,28 @@ export async function reloadSchedules() {
 | **Type Safety** | Full TypeScript support for job data |
 
 ### Monitoring
-Access Bull Board at `http://localhost:3001` to monitor:
-- Job status and execution history
-- Next scheduled runs for repeating jobs
-- Failed jobs and retry attempts
-- Queue metrics and performance
+Monitor jobs using SQL queries directly on PostgreSQL:
+```sql
+-- View active jobs
+SELECT * FROM pgboss.job WHERE state = 'active';
+
+-- User job statistics
+SELECT u.email, COUNT(j.*) as total_jobs, 
+       SUM(CASE WHEN j.status = 'completed' THEN 1 ELSE 0 END) as completed,
+       SUM(CASE WHEN j.status = 'failed' THEN 1 ELSE 0 END) as failed
+FROM user_job_status j
+JOIN users u ON j.user_id = u.id
+WHERE j.created_at > NOW() - INTERVAL '24 hours'
+GROUP BY u.email;
+
+-- Job performance metrics
+SELECT job_type, 
+       percentile_cont(0.5) WITHIN GROUP (ORDER BY completed_at - started_at) as median_duration,
+       percentile_cont(0.95) WITHIN GROUP (ORDER BY completed_at - started_at) as p95_duration
+FROM user_job_status
+WHERE status = 'completed'
+GROUP BY job_type;
+```
 
 ## 📁 Backend Structure
 
@@ -213,7 +291,8 @@ backend/
 ├── lib/                 # Core utilities
 │   ├── db.ts           # Drizzle client & helpers
 │   ├── auth.ts         # Lucia session helpers
-│   └── cache.ts        # Redis client
+│   ├── cache.ts        # Redis client
+│   └── jobs.ts         # pg-boss setup & job handlers
 ├── utils/              # Helper functions
 │   └── crypto.ts
 ├── config/             # Configuration
@@ -222,13 +301,8 @@ backend/
     └── api.d.ts
 
 worker/                  # Separate worker service
-├── index.ts            # Worker entry point
-├── jobs/               
-│   └── index.ts       # All job definitions in one file
-└── services/          # Job-specific services
-    ├── sync.service.ts
-    ├── email.service.ts
-    └── cleanup.service.ts
+├── index.ts            # Worker entry point (loads schedules, starts pg-boss)
+└── health.ts          # Health check endpoint for Docker
 ```
 
 ## 🛠️ Development Standards
@@ -287,10 +361,10 @@ worker/                  # Separate worker service
 
 | Tool | Port | Purpose |
 | ---- | ---- | ------- |
-| **pgAdmin4** | 5050 | Database GUI |
-| **RedisInsight** | 8001 | Redis GUI |
-| **Bull Board** | 3001 | Job queue monitoring |
+| **pgAdmin4** | 5050 | Database GUI + Job monitoring |
+| **RedisInsight** | 8001 | Redis cache monitoring |
 | **MailDev** | 1080 | Email testing UI |
+| **Custom Dashboard** | 3001 | Optional job status dashboard |
 
 ### Performance Settings
 - Docker: `COMPOSE_BAKE=true` enabled by default
@@ -312,47 +386,69 @@ await db.insert(usersTable).values({ name: 'John' });
 
 ### Creating Jobs (from API)
 ```typescript
-import { queue } from '@/lib/queue';
-import type { JobName } from '@/worker/jobs';
+import { boss } from '@/backend/lib/jobs';
+import { db } from '@/backend/lib/db';
 
-// One-time job (job name must exist in jobDefinitions)
-await queue.add<JobName>('send-email', {
-  to: 'user@example.com',
+// Create one-time job for user
+const jobId = await boss.send('send-email', {
+  userId: user.id,
+  to: user.email,
   subject: 'Welcome!',
   body: 'Thanks for signing up!'
+}, {
+  retryLimit: 3,
+  retryDelay: 60,
+  expireInHours: 24
 });
 
-// User-scheduled jobs are managed via database
-// First, create the schedule in DB:
+// Track job status for user
+await db.insert(userJobStatus).values({
+  id: jobId,
+  userId: user.id,
+  tenantId: user.tenantId,
+  jobType: 'send-email',
+  status: 'pending'
+});
+
+// Schedule recurring job for user
 await db.insert(userJobSchedules).values({
   userId: user.id,
   jobName: 'sync-user-data',
   cronExpression: '0 0 * * *', // Daily at midnight
+  timezone: user.timezone,
   config: { syncType: 'incremental' }
 });
 
-// Then reload schedules to activate
-await reloadSchedules();
+// Create the schedule in pg-boss
+await boss.schedule(
+  `sync-user-data-user-${user.id}`,
+  '0 0 * * *',
+  'sync-user-data',
+  { userId: user.id, ...config }
+);
 ```
 
 ### Managing User Job Schedules
 ```typescript
-// Create/update user schedule
-await db.insert(userJobSchedules)
-  .values({
-    userId: user.id,
-    jobName: 'sync-user-data',
+// Get user's job history
+const userJobs = await db.query.userJobStatus.findMany({
+  where: eq(userJobStatus.userId, userId),
+  orderBy: desc(userJobStatus.createdAt),
+  limit: 20
+});
+
+// Get job details with pg-boss internals
+const jobDetails = await boss.getJobById(jobId);
+
+// Update user's schedule
+const scheduleName = `sync-user-data-user-${userId}`;
+
+// First update database
+await db.update(userJobSchedules)
+  .set({ 
     cronExpression: '0 */6 * * *', // Every 6 hours
     config: { syncType: 'full' }
   })
-  .onConflictDoUpdate({
-    target: [userJobSchedules.userId, userJobSchedules.jobName],
-    set: { cronExpression: '0 */6 * * *' }
-  });
-
-// Disable user's job
-await db.update(userJobSchedules)
-  .set({ isActive: false })
   .where(
     and(
       eq(userJobSchedules.userId, userId),
@@ -360,8 +456,27 @@ await db.update(userJobSchedules)
     )
   );
 
-// Reload schedules after changes
-await reloadSchedules();
+// Then update pg-boss schedule
+await boss.unschedule(scheduleName); // Remove old schedule
+await boss.schedule(
+  scheduleName,
+  '0 */6 * * *',
+  'sync-user-data',
+  { userId, syncType: 'full' }
+);
+
+// Monitor job performance
+const stats = await db.sql`
+  SELECT 
+    job_type,
+    COUNT(*) as total,
+    AVG(EXTRACT(EPOCH FROM (completed_at - started_at))) as avg_duration_seconds,
+    COUNT(*) FILTER (WHERE status = 'failed') as failed_count
+  FROM user_job_status
+  WHERE user_id = ${userId}
+    AND created_at > NOW() - INTERVAL '7 days'
+  GROUP BY job_type
+`;
 ```
 
 ### Authentication Check
@@ -393,7 +508,7 @@ REDIS_INSIGHT_PORT=8001        # RedisInsight UI port
 # Application Ports
 API_PORT=8000                  # Backend API port
 WORKER_PORT=8002               # Worker health check port
-BULL_BOARD_PORT=3001           # Bull Board UI port
+DASHBOARD_PORT=3001            # Optional custom job dashboard
 
 # Development Tool Ports
 MAILDEV_PORT=1080              # MailDev UI port
@@ -454,12 +569,21 @@ services:
       REDIS_URL: redis://redis:6379
 
   worker:
+    ports:
+      - "${WORKER_PORT:-8002}:8002"
     environment:
+      PORT: ${WORKER_PORT:-8002}
       DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@db:5432/${DB_NAME}
       REDIS_URL: redis://redis:6379
+      NODE_ENV: ${NODE_ENV:-development}
     depends_on:
       - db
       - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 ```
 
 ## 🚢 Development & Deployment Principles

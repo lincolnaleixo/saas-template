@@ -92,27 +92,17 @@ my‑saas/
 - `.env` might accidentally be committed
 - Use `.env.example` for documenting required variables
 
-```bash
-# .env.local (NEVER .env)
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/myapp"
-
-# Auth
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret"
-
-# Other services
-SMTP_HOST="smtp.example.com"
-```
-
-
 ### Environment Management
 
-* Development: `./scripts/dev.sh` with hot reload and log tailing
-* Production: `./scripts/prod.sh` with optimized builds and SSL/nginx
 * All configuration via environment variables (`.env.local` for dev, `.env.production` for prod)
 * Always use SSL in production - no HTTP-only option
 * Nginx templates processed at runtime with environment variables
+
+4. **Document all environment variables**
+   - Maintain `.env.example` with all variables and descriptions
+   - Include type, format, and valid values
+   - Mark required vs optional variables
+   - Provide secure default generation commands
 
 ### Environment Variables Best Practices
 
@@ -164,8 +154,3 @@ SMTP_HOST="smtp.example.com"
    } as const;
    ```
 
-4. **Document all environment variables**
-   - Maintain `.env.example` with all variables and descriptions
-   - Include type, format, and valid values
-   - Mark required vs optional variables
-   - Provide secure default generation commands

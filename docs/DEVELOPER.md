@@ -1,20 +1,38 @@
-### Development Automation
+# Developer Guide
 
-* Git workflow automated via `scripts/git.ts` with AI-powered commit messages
-* Pre-commit hooks ensure code quality, schema validation, and migration tracking
-* Database backups are automatically versioned with schema state
-* API documentation is auto-generated from Zod schemas
+## Getting Started
 
-## ☑️ Developer First‑Feature Checklist
+### Prerequisites
+- Docker installed
+- Git configured
+- Claude Code CLI installed
 
-&#x20;  \[ ] Clone repo and copy \`.env.example\` to \`.env\` &#x20;
+### Initial Setup
 
-&#x20;  \[ ] \`bun install\` &#x20;
+* Development: `./scripts/dev.sh` with hot reload and log tailing
+* Production: `./scripts/prod.sh` with optimized builds and SSL/nginx
 
-&#x20;  \[ ] \`bun run page my-feature\`  scaffolds new route with Claude Code &#x20;
+## Development Workflow
 
-&#x20;  \[ ] Chat with Claude Code, include prompt snippets &#x20;
+### Creating New Features
 
-&#x20;  \[ ] Ensure unit tests pass with \`bun test\` &#x20;
+dev/new-feature.ts
 
-&#x20;  \[ ] Open PR, include transcript, pass CI, merge.
+### fixing
+
+dev/bug-fit.ts
+
+### improveming a feature
+
+dev/improve-feature.ts
+
+### create a new job/scheduler/worker
+
+dev/ new-job.ts
+
+## Additional Resources
+
+- Check `/prompts` directory for AI prompt templates
+- Consult team documentation for specific guidelines
+
+

@@ -1,9 +1,0 @@
-# Schema hash file (regenerated on each migration)
-.schema-hash
-
-# Temporary migration files
-*.tmp
-*.backup
-
-# Local test migrations (prefix with test_)
-test_*.sql

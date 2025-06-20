@@ -13,6 +13,7 @@ This document covers frontend-specific architecture, web components design, and 
 | **Responsive** | Mobile-first design that scales to desktop |
 | **Accessible** | WCAG 2.1 AA compliance for all components |
 | **Progressive Enhancement** | Core functionality works without JavaScript |
+| **PicoCSS Framework** | Use PicoCSS via CDN for consistent, semantic styling |
 
 ## 📁 Frontend Structure
 
@@ -107,35 +108,75 @@ frontend/
    customElements.define('app-button', AppButton);
    ```
 
-2. **Style Encapsulation**
-   - Use Shadow DOM for component encapsulation
-   - Never use inline styles in components
-   - Component styles go in dedicated `.css` files
-   - Global styles inherited through CSS custom properties
+2. **CSS File Standards**
+   ```typescript
+   // components/card/Card.ts
+   import { BaseComponent } from '../base/BaseComponent';
+   
+   // Load CSS properly - NO inline styles!
+   const cardStyles = new CSSStyleSheet();
+   
+   // Option 1: Import CSS file content (requires bundler)
+   import cardCSS from './card.css';
+   cardStyles.replaceSync(cardCSS);
+   
+   // Option 2: Fetch CSS file
+   fetch('/frontend/components/card/card.css')
+     .then(r => r.text())
+     .then(css => cardStyles.replaceSync(css));
+   
+   // Option 3: Define in separate constant (but still no inline)
+   const styles = `
+     :host {
+       /* Styles here, but prefer separate .css file */
+     }
+   `;
+   cardStyles.replaceSync(styles);
+   ```
 
-3. **Page Components**
+3. **Style Encapsulation**
+   - Use Shadow DOM for component encapsulation
+   - **NEVER use inline styles** in components
+   - Component styles go in dedicated `.css` files
+   - PicoCSS styles inherited in light DOM
+   - Custom properties pierce Shadow DOM
+
+4. **Page Components**
    - Pages are special components in `/pages`
-   - Each page has its own `.ts` and `.css` files
-   - Pages can compose smaller components
+   - Each page has **separate** `.ts` and `.css` files
+   - Pages use PicoCSS containers and grids
    - Pages handle routing and data fetching
 
 ## 🎯 Frontend Standards
 
-### HTMX Integration
+### HTMX Integration with PicoCSS
 
 ```html
-<!-- Use HTMX for dynamic updates -->
-<button hx-post="/api/users" 
-        hx-target="#user-list" 
-        hx-swap="beforeend"
-        hx-indicator="#spinner">
-  Add User
-</button>
-
-<!-- Progressive enhancement -->
-<form action="/api/users" method="POST" hx-boost="true">
-  <!-- Form works with or without JavaScript -->
-</form>
+<!-- HTMX + PicoCSS semantic HTML -->
+<article>
+  <header>
+    <h3>Users</h3>
+  </header>
+  
+  <!-- PicoCSS button with HTMX -->
+  <button hx-post="/api/users" 
+          hx-target="#user-list" 
+          hx-swap="beforeend"
+          hx-indicator="#spinner"
+          class="contrast">
+    Add User
+  </button>
+  
+  <!-- PicoCSS form with HTMX progressive enhancement -->
+  <form action="/api/users" method="POST" hx-boost="true">
+    <input type="text" name="name" placeholder="Name" required>
+    <button type="submit">Submit</button>
+  </form>
+  
+  <div id="user-list" role="group">
+    <!-- PicoCSS cards for users -->
+  </div>
+</article>
 ```
 
 ### State Management
@@ -189,9 +230,54 @@ toast.show('User created successfully', 'success');
 
 ## 🎨 Design System
 
+### PicoCSS Integration
+
+**We use PicoCSS as our CSS framework** - loaded via CDN for zero build complexity:
+
+```html
+<!-- In your HTML head -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+```
+
+### CSS Organization Standards
+
+**IMPORTANT CSS RULES:**
+
+1. **NO INLINE STYLES** - Never write styles in HTML or JavaScript
+2. **Separate CSS Files** - Each component/page has its own `.css` file
+3. **Global Styles** - Shared styles go in `/styles/global.css`
+4. **Component Styles** - Component-specific styles in component folders
+5. **Use CSS Variables** - Extend PicoCSS with custom properties
+
+### File Organization
+
+```text
+/* CORRECT - Separated CSS files */
+frontend/
+├── components/
+│   └── button/
+│       ├── Button.ts        # NO inline styles here
+│       └── button.css       # ALL button styles here
+├── pages/
+│   ├── HomePage.ts          # NO inline styles here
+│   └── home-page.css        # ALL page styles here
+└── styles/
+    ├── global.css           # Global overrides and utilities
+    └── variables.css        # Custom CSS variables
+
+/* WRONG - Inline styles */
+// ❌ NEVER do this in Button.ts:
+this.shadow.innerHTML = `
+  <button style="color: red;">Click</button>
+`;
+
+// ✅ CORRECT - Use CSS file:
+this.shadow.adoptedStyleSheets = [buttonStyles];
+```
+
 ### CSS Architecture
 
-1. **Global Variables** (`styles/variables.css`)
+1. **PicoCSS Base + Custom Variables** (`styles/variables.css`)
    ```css
    :root {
      /* Colors */
@@ -224,7 +310,27 @@ toast.show('User created successfully', 'success');
    }
    ```
 
-2. **Skeleton Loading Styles** (`styles/global.css`)
+2. **Global Styles** (`styles/global.css`)
+   ```css
+   /* PicoCSS overrides and custom utilities */
+   @import './variables.css';
+   
+   /* FOUC Prevention - MUST be in global.css */
+   :not(:defined) {
+     visibility: hidden;
+   }
+   
+   /* Extend PicoCSS with custom utilities */
+   .text-center { text-align: center; }
+   .mt-auto { margin-top: auto; }
+   .mb-0 { margin-bottom: 0; }
+   
+   /* Custom component defaults */
+   app-header { display: block; }
+   app-footer { display: block; }
+   ```
+
+3. **Skeleton Loading Styles** (`styles/global.css`)
    ```css
    /* Skeleton loading animation */
    .skeleton {
@@ -265,11 +371,57 @@ toast.show('User created successfully', 'success');
    }
    ```
 
-2. **Component Styling Rules**
+### Component Styling Best Practices
+
+1. **PicoCSS First** - Use PicoCSS classes before writing custom CSS
+   ```html
+   <!-- Use PicoCSS semantic HTML -->
+   <article>
+     <header>
+       <h2>Title</h2>
+     </header>
+     <p>Content uses PicoCSS typography automatically</p>
+     <footer>
+       <button class="secondary">PicoCSS Button</button>
+     </footer>
+   </article>
+   ```
+
+2. **Component CSS Rules**
+   ```css
+   /* component/button/button.css */
+   :host {
+     /* Component wrapper styles */
+     display: inline-block;
+   }
+   
+   /* Extend PicoCSS styles, don't override */
+   button {
+     /* Inherits PicoCSS button styles */
+     /* Add only what's unique to this component */
+   }
+   ```
+
+3. **Page-Level Styles**
+   ```css
+   /* pages/home-page.css */
+   :host {
+     display: block;
+     /* Use PicoCSS container and grid */
+   }
+   
+   .hero {
+     /* Custom hero section extending PicoCSS */
+   }
+   ```
+
+4. **Styling Rules**
+   - Let PicoCSS handle base styles
+   - Use semantic HTML for automatic styling
+   - Add custom styles only when needed
    - Mobile-first responsive design
    - Use CSS custom properties for theming
    - Prefer CSS Grid and Flexbox for layouts
-   - Semantic class names (BEM-like)
 
 ### Responsive Design
 

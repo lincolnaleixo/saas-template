@@ -344,17 +344,6 @@ worker/                  # Separate worker service
 2. **Run** `bun run scripts/generate-docs.ts` to generate OpenAPI
 3. **Commit** `docs/openapi.json` for AI assistants
 
-### Package Management
-
-| Command | Purpose |
-| ------- | ------- |
-| `bun install` | Install dependencies |
-| `bun run dev` | Start development server |
-| `bun test` | Run test suite |
-| `bun run build` | Build for production |
-
-**NEVER use npm, yarn, or node commands**
-
 ## 🔧 Tool Configuration
 
 ### Development Tools

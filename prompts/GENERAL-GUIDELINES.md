@@ -6,40 +6,41 @@ This document defines the tech stack, architectural principles, and coding stand
 
 | Layer    | Choice & Notes                                                   |
 | -------- | ---------------------------------------------------------------- |
-| Runtime  | **Bun 1.x** – ESM, hot reload, built‑in test runner              |
-| Language | **TypeScript 5** targeting `es2022`                              |
-| Database | **Postgres + pgvector** via Bun`s native `sql\` client           |
+| Runtime  | **Bun 1.x** – ESM, hot reload, built‑in test runner              |
+| Language | **TypeScript 5** targeting `es2022`                              |
+| Database | **Postgres + pgvector** via Bun's native `sql` client           |
 | ORM      | **Drizzle** – pure TS, zero build                                |
 | Auth     | **Lucia** – fetch‑based middleware only                          |
 | UI       | **HTML + HTMX + Web Components** shipped as ES modules           |
 | Styling  | CDN CSS (**Picocss**) – no tooling                               |
-| Dev Ops  | Docker (`oven/bun` image) deploying to Fly.io, Railway or Render |
+| Dev Ops  | Docker (`oven/bun` image) deploying to Fly.io, Railway or Render |
 
 ## 📂 Recommended Folder Layout
 
-````text
+```text
 my‑saas/
 ├─ backend/                    ← More details on BACKEND-GUIDELINES.md
 ├─ static/
 │  ├─ util.css                 ← hand‑rolled utility classes
 │  └─ images/                  ← logo, hero, etc.
 ├─ dev/                        ← Claude scaffolder for development
-│  ├─ fix-bugs.ts              ← For fixing bugs
+│  ├─ bug-fix.ts               ← For fixing bugs
 │  ├─ new-feature.ts           ← To implement new features
-│  ├─ improve-feature.ts       ← To improve existant features
-│  ├─ generate-docs.ts         ← To generate specific docs
+│  ├─ improve-feature.ts       ← To improve existing features
+│  ├─ new-job.ts               ← To create new job/scheduler/worker
+│  └─ generate-docs.ts         ← To generate specific docs
 ├─ docs/                       ← documentation about the project
 ├─ frontend/                   ← More details on FRONTEND-GUIDELINES.md
 ├─ prompts/                    ← prompt snippets for Claude
 ├─ scripts/
 │  ├─ dev.sh                   ← To run project in development
-│  ├─ prod.sh                  ← To run project in production
+│  └─ prod.sh                  ← To run project in production
 ├─ tests/                      ← bun test specs
 ├─ .env.example
 ├─ .env.local
 ├─ .gitignore
-├─ README.md
-````
+└─ README.md
+```
 
 ## Critical Development Rules
 
@@ -77,11 +78,7 @@ my‑saas/
 
 7. **TYPE SAFETY** - Maintain strict TypeScript types. Use Zod schemas for runtime validation.
 
-8. **ALWAYS USE BUN** - For all operations:
-    - Use `bun` for package management, NOT `npm` or `yarn`
-    - Use `bun run` for scripts, NOT `npm run` or `node`
-    - Use `bun install` for dependencies, NOT `npm install`
-    - All scripts should have `#!/usr/bin/env bun` shebang
+8. **ALWAYS USE BUN, BUT IN DOCKER**
 
 ## Key Concepts and Best Practices
 
@@ -97,12 +94,6 @@ my‑saas/
 * All configuration via environment variables (`.env.local` for dev, `.env.production` for prod)
 * Always use SSL in production - no HTTP-only option
 * Nginx templates processed at runtime with environment variables
-
-4. **Document all environment variables**
-   - Maintain `.env.example` with all variables and descriptions
-   - Include type, format, and valid values
-   - Mark required vs optional variables
-   - Provide secure default generation commands
 
 ### Environment Variables Best Practices
 
@@ -154,3 +145,8 @@ my‑saas/
    } as const;
    ```
 
+4. **Document all environment variables**
+   - Maintain `.env.example` with all variables and descriptions
+   - Include type, format, and valid values
+   - Mark required vs optional variables
+   - Provide secure default generation commands

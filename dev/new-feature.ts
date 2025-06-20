@@ -139,7 +139,7 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
     console.log(response.response || response);
     
     // Save to output directory with full datetime
-    const outputDir = join(process.cwd(), "dev", "output");
+    const outputDir = join(process.cwd(), "dev", "output", "raw");
     if (!existsSync(outputDir)) {
       await mkdir(outputDir, { recursive: true });
     }

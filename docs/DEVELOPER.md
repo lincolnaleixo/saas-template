@@ -3,36 +3,45 @@
 ## Getting Started
 
 ### Prerequisites
+
 - Docker installed
 - Git configured
 - Claude Code CLI installed
 
 ### Initial Setup
 
-* Development: `./scripts/dev.sh` with hot reload and log tailing
-* Production: `./scripts/prod.sh` with optimized builds and SSL/nginx
+Choose your environment:
+
+- **Development**: `./scripts/dev.sh` - Includes hot reload and log tailing
+- **Production**: `./scripts/prod.sh` - Optimized builds with SSL/nginx
 
 ## Development Workflow
 
-### Creating New Features
+### Feature Development Scripts
 
+Use these specialized scripts for common development tasks:
+
+#### Creating New Features
+```bash
 dev/new-feature.ts
+```
 
-### fixing
+#### Bug Fixes
+```bash
+dev/bug-fix.ts
+```
 
-dev/bug-fit.ts
-
-### improveming a feature
-
+#### Feature Improvements
+```bash
 dev/improve-feature.ts
+```
 
-### create a new job/scheduler/worker
-
-dev/ new-job.ts
+#### New Job on Scheduler/Worker
+```bash
+dev/new-job.ts
+```
 
 ## Additional Resources
 
 - Check `/prompts` directory for AI prompt templates
 - Consult team documentation for specific guidelines
-
-

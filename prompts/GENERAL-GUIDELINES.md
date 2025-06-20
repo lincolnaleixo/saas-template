@@ -31,11 +31,13 @@ my‑saas/
 │  └─ generate-docs.ts         ← To generate specific docs
 ├─ docs/                       ← documentation about the project
 ├─ frontend/                   ← More details on FRONTEND-GUIDELINES.md
+├─ infra/                      ← 
 ├─ prompts/                    ← prompt snippets for Claude
 ├─ scripts/
 │  ├─ dev.sh                   ← To run project in development
 │  └─ prod.sh                  ← To run project in production
 ├─ tests/                      ← bun test specs
+├─ worker/                     ← 
 ├─ .env.example
 ├─ .env.local
 ├─ .gitignore

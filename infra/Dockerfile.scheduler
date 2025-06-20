@@ -1,0 +1,16 @@
+FROM oven/bun:1-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json ./
+COPY bun.lockb* ./
+
+# Install dependencies
+RUN bun install
+
+# Copy scheduler source code
+COPY scheduler ./scheduler
+
+# Run with hot reload
+CMD ["bun", "run", "--watch", "scheduler/index.ts"]

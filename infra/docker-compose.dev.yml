@@ -1,0 +1,100 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: conkero-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-conkero}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-conkero123}
+      POSTGRES_DB: ${POSTGRES_DB:-conkero}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../infra/database/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-conkero}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: conkero-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ../infra/database/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    container_name: conkero-api
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-conkero}:${POSTGRES_PASSWORD:-conkero123}@db:5432/${POSTGRES_DB:-conkero}
+      DB_HOST: db
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-conkero}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-conkero123}
+      POSTGRES_DB: ${POSTGRES_DB:-conkero}
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../api:/app/api
+      - ../package.json:/app/package.json
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["bun", "run", "--watch", "api/index.ts"]
+
+  scheduler:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.scheduler
+    container_name: conkero-scheduler
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-conkero}:${POSTGRES_PASSWORD:-conkero123}@db:5432/${POSTGRES_DB:-conkero}
+      DB_HOST: db
+      DB_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-conkero}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-conkero123}
+      POSTGRES_DB: ${POSTGRES_DB:-conkero}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3001:3001"
+    volumes:
+      - ../scheduler:/app/scheduler
+      - ../package.json:/app/package.json
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["bun", "run", "--watch", "scheduler/index.ts"]
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.frontend
+    container_name: conkero-frontend
+    ports:
+      - "4001:4001"
+    volumes:
+      - ../web:/app/web
+      - ../package.json:/app/package.json
+      - ../vite.config.js:/app/vite.config.js
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    command: ["bun", "run", "vite", "--", "--host", "0.0.0.0", "--port", "4001"]
+# Volumes removed - using local directories instead

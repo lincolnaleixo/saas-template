@@ -79,6 +79,20 @@ MIGRATION_VERSION="unknown"
 if [ -f "./migrations/.schema-hash" ]; then
     # Use first 8 characters of the schema hash for brevity
     MIGRATION_VERSION=$(cat "./migrations/.schema-hash" | cut -c1-8)
+else
+    # Fallback: Try to get from database if hash file doesn't exist
+    if docker exec "${DB_CONTAINER}" psql -U "${DB_USER}" -d "${DB_NAME}" -t -c "SELECT 1 FROM information_schema.tables WHERE table_name = '__drizzle_migrations'" 2>/dev/null | grep -q 1; then
+        LAST_MIGRATION=$(docker exec "${DB_CONTAINER}" psql -U "${DB_USER}" -d "${DB_NAME}" -t -c "SELECT version FROM __drizzle_migrations ORDER BY created_at DESC LIMIT 1" 2>/dev/null | tr -d ' \n')
+        if [ -n "$LAST_MIGRATION" ]; then
+            # Use first 8 chars of migration filename
+            MIGRATION_VERSION="mig-${LAST_MIGRATION:0:8}"
+        fi
+    fi
+    
+    # Final fallback: use git commit
+    if [ "$MIGRATION_VERSION" = "unknown" ]; then
+        MIGRATION_VERSION="git-${GIT_COMMIT:0:8}"
+    fi
 fi
 
 echo -e "${BLUE}🔄 Starting database backup...${NC}"

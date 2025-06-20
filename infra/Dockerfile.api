@@ -1,0 +1,19 @@
+FROM oven/bun:1-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json ./
+COPY bun.lockb* ./
+
+# Install dependencies
+RUN bun install
+
+# Copy API source code
+COPY api ./api
+
+# Expose port
+EXPOSE 8000
+
+# Run with hot reload
+CMD ["bun", "run", "--watch", "api/index.ts"]

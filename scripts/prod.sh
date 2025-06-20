@@ -203,9 +203,60 @@ while ! docker compose -f ${COMPOSE_PATH}/${COMPOSE_FILE} exec -T ${PROJECT_NAME
 done
 print_success "Database is ready"
 
-# Import latest schema
-print_status "Importing database schema..."
-LATEST_SCHEMA=$(ls -1 ${COMPOSE_PATH}/db-schemas/*.sql 2>/dev/null | sort -r | head -1)
+# Step: Check and run database migrations
+print_status "Checking for pending database migrations..."
+if [ -d "./migrations/drizzle" ]; then
+    # Check if migration table exists
+    HAS_MIGRATION_TABLE=$(docker compose -f ${COMPOSE_PATH}/${COMPOSE_FILE} exec -T ${PROJECT_NAME}-db psql -U ${DB_USER} -d ${DB_NAME} -t -c "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = '__drizzle_migrations');" 2>/dev/null | tr -d ' \n')
+    
+    if [ "$HAS_MIGRATION_TABLE" = "t" ]; then
+        # Check for pending migrations
+        PENDING_COUNT=$(find ./migrations/drizzle -name "*.sql" -type f | wc -l)
+        APPLIED_COUNT=$(docker compose -f ${COMPOSE_PATH}/${COMPOSE_FILE} exec -T ${PROJECT_NAME}-db psql -U ${DB_USER} -d ${DB_NAME} -t -c "SELECT COUNT(*) FROM __drizzle_migrations;" 2>/dev/null | tr -d ' \n' || echo "0")
+        
+        if [ "$PENDING_COUNT" -gt "$APPLIED_COUNT" ]; then
+            print_warning "Found pending migrations ($((PENDING_COUNT - APPLIED_COUNT)) new)"
+            
+            # Create backup before migration
+            print_status "Creating database backup before migration..."
+            ./scripts/backup-sql.sh || {
+                print_error "Failed to create backup, aborting migration"
+                exit 1
+            }
+            
+            # Test migrations on staging if available
+            if [ -n "${STAGING_DATABASE_URL:-}" ]; then
+                print_status "Testing migrations on staging database..."
+                DATABASE_URL=$STAGING_DATABASE_URL bun run ./scripts/migrate.ts || {
+                    print_error "Staging migration failed, aborting production migration"
+                    exit 1
+                }
+                print_success "Staging migration successful"
+            fi
+            
+            # Run production migrations
+            print_warning "Running production migrations..."
+            read -p "Continue with production migration? (y/N) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                # Run migrations using the API container with database connection
+                docker compose -f ${COMPOSE_PATH}/${COMPOSE_FILE} run --rm \
+                    -e DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${PROJECT_NAME}-db:5432/${DB_NAME}" \
+                    api bun run ./scripts/migrate.ts || {
+                    print_error "Migration failed! Database backup available in infra/db-schemas/"
+                    exit 1
+                }
+                print_success "Database migrations applied successfully"
+            else
+                print_warning "Migration skipped - deployment may fail if schema is incompatible"
+            fi
+        else
+            print_success "Database schema is up to date"
+        fi
+    else
+        # First time setup - import schema instead
+        print_status "First time setup - importing initial schema..."
+        LATEST_SCHEMA=$(ls -1 ${COMPOSE_PATH}/db-schemas/*.sql 2>/dev/null | sort -r | head -1)
 if [ -n "$LATEST_SCHEMA" ] && [ -f "$LATEST_SCHEMA" ]; then
     print_status "Using schema: $(basename $LATEST_SCHEMA)"
     docker compose -f ${COMPOSE_PATH}/${COMPOSE_FILE} exec -T ${PROJECT_NAME}-db psql -U ${DB_USER} -d ${DB_NAME} < "$LATEST_SCHEMA" 2>/dev/null || {
@@ -214,7 +265,21 @@ if [ -n "$LATEST_SCHEMA" ] && [ -f "$LATEST_SCHEMA" ]; then
     print_success "Database schema imported"
 else
     print_error "No schema file found in ${COMPOSE_PATH}/db-schemas/"
-    print_warning "Database will start empty - make sure to run backup-db.sh in development first"
+    print_warning "Database will start empty - make sure to run backup-sql.sh in development first"
+    fi
+else
+    print_warning "No migrations directory found - using schema import fallback"
+    LATEST_SCHEMA=$(ls -1 ${COMPOSE_PATH}/db-schemas/*.sql 2>/dev/null | sort -r | head -1)
+    if [ -n "$LATEST_SCHEMA" ] && [ -f "$LATEST_SCHEMA" ]; then
+        print_status "Using schema: $(basename $LATEST_SCHEMA)"
+        docker compose -f ${COMPOSE_PATH}/${COMPOSE_FILE} exec -T ${PROJECT_NAME}-db psql -U ${DB_USER} -d ${DB_NAME} < "$LATEST_SCHEMA" 2>/dev/null || {
+            print_warning "Schema already exists or partial import (this is normal)"
+        }
+        print_success "Database schema imported"
+    else
+        print_error "No schema file found in ${COMPOSE_PATH}/db-schemas/"
+        print_warning "Database will start empty - make sure to run backup-sql.sh in development first"
+    fi
 fi
 
 # Wait for other services

@@ -1,0 +1,23 @@
+FROM oven/bun:1-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json ./
+COPY bun.lockb* ./
+
+# Install dependencies
+RUN bun install
+
+# Copy frontend source code and config
+COPY web ./web
+COPY vite.config.js ./
+
+# Expose port
+EXPOSE 4001
+
+# Set working directory to web folder
+WORKDIR /app
+
+# Run dev server with correct port
+CMD ["bun", "run", "vite", "--host", "0.0.0.0", "--port", "4001"]

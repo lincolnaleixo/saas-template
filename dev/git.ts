@@ -289,9 +289,14 @@ async function createNewBranch(gitSummary: string): Promise<string> {
  *    - Automatically rotates old backups
  *    - Essential for data recovery
  * 
+ * 2. generate-migrations.ts - Generates Drizzle migrations from schema changes
+ *    - Compares current schema with database
+ *    - Creates timestamped migration files
+ *    - Validates SQL before committing
+ * 
  * Other available scripts (not run automatically):
- * - check-migrations.ts - Validates database migrations
- * - validate-schema.ts - Validates Drizzle schemas
+ * - migrate.ts - Applies pending migrations to database
+ * - rollback.ts - Rolls back last migration
  * 
  * Scripts are optional but backups are highly recommended
  * If a script fails, user is prompted to continue or abort
@@ -315,8 +320,10 @@ async function executePreCommitScripts(): Promise<void> {
 
   // Define scripts to run - check for multiple possible names
   const backupScriptNames = ['backup-sql.sh', 'backup-db.sh', 'backup.sh'];
+  const migrationScriptNames = ['generate-migrations.ts', 'gen-migrations.ts'];
 
   let backupScript = null;
+  let migrationScript = null;
 
   // Find backup script
   for (const scriptName of backupScriptNames) {
@@ -328,6 +335,68 @@ async function executePreCommitScripts(): Promise<void> {
     }
   }
 
+  // Find migration script
+  for (const scriptName of migrationScriptNames) {
+    const scriptPath = path.join(scriptsDir, scriptName);
+    if (fs.existsSync(scriptPath)) {
+      migrationScript = scriptPath;
+      console.log(`✅ Found migration script: ${scriptName}`);
+      break;
+    }
+  }
+
+  // Run migration generation if Drizzle is configured
+  if (migrationScript || (fs.existsSync('./drizzle.config.ts') && fs.existsSync('./backend/models'))) {
+    console.log(`\n🔄 Checking for database schema changes...`);
+    try {
+      // Check if there are schema changes that need migrations
+      const drizzleCheck = await executeCommand('bun drizzle-kit check || echo "no-drizzle"').catch(() => 'no-drizzle');
+      
+      if (drizzleCheck.includes('no-drizzle')) {
+        console.log('⚠️  Drizzle Kit not installed, skipping migration check');
+      } else if (drizzleCheck.includes('No schema changes')) {
+        console.log('✅ No database schema changes detected');
+      } else {
+        console.log('📝 Database schema changes detected!');
+        const generateAnswer = await askQuestion('Generate migration for these changes? (y/n): ');
+        
+        if (generateAnswer.toLowerCase() === 'y') {
+          console.log('🔨 Generating migration...');
+          
+          // Generate migration with descriptive name
+          const migrationName = await askQuestion('Enter migration description (e.g. "add user roles"): ');
+          const sanitizedName = migrationName.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+          
+          await executeCommand(`bun drizzle-kit generate:pg --name=${sanitizedName}`);
+          console.log('✅ Migration generated successfully');
+          
+          // Show the generated migration file
+          const latestMigration = await executeCommand('ls -1 ./migrations/drizzle/*.sql | tail -1');
+          if (latestMigration) {
+            console.log(`📄 Generated: ${latestMigration}`);
+            
+            // Optionally create rollback script
+            const createRollback = await askQuestion('Create rollback script for this migration? (y/n): ');
+            if (createRollback.toLowerCase() === 'y') {
+              const migrationFile = path.basename(latestMigration);
+              const rollbackPath = `./migrations/rollback/${migrationFile}`;
+              
+              // Create rollback directory if it doesn't exist
+              await executeCommand('mkdir -p ./migrations/rollback');
+              
+              // Copy migration as starting point for rollback
+              await executeCommand(`cp ${latestMigration} ${rollbackPath}`);
+              console.log(`✅ Rollback template created: ${rollbackPath}`);
+              console.log('   ⚠️  Remember to edit the rollback script to reverse the migration!');
+            }
+          }
+        }
+      }
+    } catch (e: any) {
+      console.log(`⚠️  Migration check failed: ${e.message}`);
+      // Continue anyway - not critical for commits
+    }
+  }
 
   // Run backup script if found
   if (backupScript) {
@@ -361,6 +430,22 @@ async function executePreCommitScripts(): Promise<void> {
     }
 
     console.log('   Continuing without backup...');
+  }
+
+  // Additional check for pending migrations before commit
+  if (fs.existsSync('./migrations/drizzle')) {
+    try {
+      const pendingMigrations = await executeCommand(`
+        find ./migrations/drizzle -name "*.sql" -type f | wc -l
+      `).then(count => parseInt(count.trim()));
+      
+      if (pendingMigrations > 0) {
+        console.log(`\n⚠️  Note: You have ${pendingMigrations} migration file(s) ready to deploy`);
+        console.log('   These will be applied during the next production deployment.');
+      }
+    } catch (e) {
+      // Non-critical, continue
+    }
   }
 
 

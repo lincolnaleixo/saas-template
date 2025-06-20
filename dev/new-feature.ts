@@ -162,7 +162,7 @@ function formatFeaturesAsTodos(features: string[]): string {
   return returnPrompt;
 }
 
-async function sendToClaude(prompt: string, continueConversation: boolean = false, sessionId: string): Promise<any> {
+async function sendToClaude(prompt: string, continueConversation: boolean = false, sessionId: string, useOpus: boolean = false): Promise<any> {
   console.log("\n🚀 Sending to Claude Code...\n");
 
   // Build command arguments
@@ -172,6 +172,22 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
     "--output-format", "stream-json",
     "--verbose"
   ];
+  
+  // Add model selection
+  if (!continueConversation) {
+    // For initial feature implementation
+    if (useOpus) {
+      args.push("--model", "opus");
+      console.log("🎯 Using Opus model for feature implementation");
+    } else {
+      args.push("--model", "sonnet");
+      console.log("🎯 Using Sonnet model for feature implementation");
+    }
+  } else {
+    // For end flow, always use Sonnet
+    args.push("--model", "sonnet");
+    console.log("🎯 Using Sonnet model for post-implementation checklist");
+  }
   
   // Add continue flag if this is a follow-up
   if (continueConversation) {
@@ -363,6 +379,22 @@ async function updateHistory(sessionSummary: any): Promise<void> {
   console.log(`\n📜 History updated: ${historyPath}`);
 }
 
+// Check if Opus model is available
+async function checkOpusAvailability(): Promise<boolean> {
+  try {
+    // Try to run a simple command with Opus
+    const proc = Bun.spawn(["claude", "--model", "opus", "--version"], {
+      stdout: "pipe",
+      stderr: "pipe"
+    });
+    
+    const exitCode = await proc.exited;
+    return exitCode === 0;
+  } catch (error) {
+    return false;
+  }
+}
+
 async function main() {
   try {
     // Generate session ID with full datetime
@@ -378,6 +410,15 @@ async function main() {
     features.forEach((feature, index) => {
       console.log(`  ${index + 1}. ${feature}`);
     });
+    
+    // Check if Opus is available
+    console.log("\n🔍 Checking model availability...");
+    const opusAvailable = await checkOpusAvailability();
+    if (opusAvailable) {
+      console.log("✅ Opus model available - will use for feature implementation");
+    } else {
+      console.log("ℹ️  Opus model not available - will use Sonnet for feature implementation");
+    }
     
     // Load documentation
     const documentation = await loadDocumentation();
@@ -411,7 +452,7 @@ async function main() {
     
     // Step 1: Send feature implementation request
     console.log("\n🚀 Step 1: Implementing features...");
-    const response1 = await sendToClaude(featureImplementationPrompt, false, sessionId);
+    const response1 = await sendToClaude(featureImplementationPrompt, false, sessionId, opusAvailable);
     
     console.log("\n✅ Features implemented!");
     
@@ -427,8 +468,8 @@ async function main() {
     
     sessionData.prompts.endWorkflow = endWorkflowPrompt;
     
-    // Continue the conversation with end workflow tasks
-    const response2 = await sendToClaude(endWorkflowPrompt, true, sessionId);
+    // Continue the conversation with end workflow tasks (always uses Sonnet)
+    const response2 = await sendToClaude(endWorkflowPrompt, true, sessionId, false);
 
     console.log("\n✅ Post-implementation checklist completed!");
 

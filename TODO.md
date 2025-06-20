@@ -1,10 +1,18 @@
 
+- precisa fix isso
+📋 Running pre-commit scripts...
 
+📍 git.ts is running from: /Users/robot/Downloads/template/dev/new-feature.ts
+📁 Looking for pre-commit scripts in: /Users/robot/Downloads/template/dev
+📄 Files in directory: .DS_Store, new-job.ts, bug-fix.ts, output, new-feature.ts, git.ts, new-perf.ts
 
+⚠️  Warning: No backup script found
+   Searched for: backup-sql.sh, backup-db.sh, backup.sh
+   In directory: /Users/robot/Downloads/template/dev
+   Continuing without backup...
 
-- change the script so the first send to claude code (features) will use opus (se tiver disponivel, se não usar sonet) e o segundo (end flow) usar sonnet sempre
---model	Sets the model for the current session with an alias for the latest model (sonnet or opus) : claude --model or sonnet claude --model opus
-- ver se seria melhor voltar em json a resposta, testar com o new-feature primeiro e depois ajustar para os outros (https://docs.anthropic.com/en/docs/claude-code/common-workflows)
+✅ Pre-commit scripts phase completed
+
 
 - perguntar qual seria o melhor logger para frontend/jobs/backend (ou criar um)
 - depois que escolher quais melhores loggers ou criar um , ajustar nos guidelines

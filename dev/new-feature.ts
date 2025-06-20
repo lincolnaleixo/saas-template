@@ -112,6 +112,9 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
     stderr: "inherit"
   });
 
+  // Sent prompt to Claude
+  console.log(`\n📜 Prompt sent to Claude. Let them code`);
+
   // Collect the output
   const output = await new Response(proc.stdout).text();
   

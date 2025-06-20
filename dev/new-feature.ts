@@ -77,7 +77,11 @@ function formatFeaturesAsTodos(features: string[]): string {
     return `${index + 1}. ${feature}`;
   }).join("\n");
   
-  return `Those are the new features to implement as a structured todo list:\n${todoList}`;
+  let returnPrompt = `---- \n\nNow, pay attention!`;
+  returnPrompt += ` Those are the new features to implement as a structured todo list:\n`
+  returnPrompt += `\n${todoList}`;
+
+  return returnPrompt;
 }
 
 async function sendToClaude(prompt: string): Promise<void> {
@@ -151,8 +155,8 @@ async function main() {
     
     let fullPrompt = 'This is a NEW FEATURE implementation request';
     fullPrompt += `Follow strictly ALL guidelines from the documentation below:`;
-    fullPrompt += `${documentation}\n\n`;
-    fullPrompt += `\n\n${featuresPrompt}\n\n`;
+    fullPrompt += `${documentation}`;
+    fullPrompt += `${featuresPrompt}`;
     
     // Send initial feature request
     // await sendToClaude(fullPrompt);

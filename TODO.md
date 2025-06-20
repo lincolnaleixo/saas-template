@@ -2,39 +2,8 @@
 
 
 
-- ver se daria para usar stream e continuar como estou, mas somente mudaria que iria atualizar em tempo real o que claude code esta fazendo e que eu poderia mostrar no terminal atualizando (depois do   console.log(`📜 Prompt sent to Claude. Now sit and wait`);
-)
-
-Use text format (default)
-
-
-Copy
-cat data.txt | claude -p 'summarize this data' --output-format text > summary.txt
-This outputs just Claude’s plain text response (default behavior).
-
-2
-Use JSON format
-
-
-Copy
-cat code.py | claude -p 'analyze this code for bugs' --output-format json > analysis.json
-This outputs a JSON array of messages with metadata including cost and duration.
-
-3
-Use streaming JSON format
-
-
-Copy
-cat log.txt | claude -p 'parse this log file for errors' --output-format stream-json
-This outputs a series of JSON objects in real-time as Claude processes the request. Each message is a valid JSON object, but the entire output is not valid JSON if concatenated.
-
-Tips:
-
-Use --output-format text for simple integrations where you just need Claude’s response
-Use --output-format json when you need the full conversation log
-Use --output-format stream-json for real-time output of each conversation turn
-
-- o primeiro usar opus (se tiver disponivel, se não usar sonet) e o segundo usar sonnet sempre (--model	Sets the model for the current session with an alias for the latest model (sonnet or opus) or a model’s full name	claude --model claude-sonnet-4-20250514)
+- change the script so the first send to claude code (features) will use opus (se tiver disponivel, se não usar sonet) e o segundo (end flow) usar sonnet sempre
+--model	Sets the model for the current session with an alias for the latest model (sonnet or opus) : claude --model or sonnet claude --model opus
 - ver se seria melhor voltar em json a resposta, testar com o new-feature primeiro e depois ajustar para os outros (https://docs.anthropic.com/en/docs/claude-code/common-workflows)
 
 - perguntar qual seria o melhor logger para frontend/jobs/backend (ou criar um)

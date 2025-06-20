@@ -169,7 +169,7 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
   const args = [
     "claude", 
     "--dangerously-skip-permissions",
-    "--output-format", "json"
+    "--output-format", "stream-json"
   ];
   
   // Add continue flag if this is a follow-up
@@ -180,7 +180,7 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
   // Add the print flag and prompt using short form
   args.push("-p", prompt);
 
-  // Execute claude command in non-interactive mode
+  // Execute claude command in streaming mode
   const proc = Bun.spawn(args, {
     stdout: "pipe",
     stderr: "pipe"
@@ -188,28 +188,65 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
 
   // Sent prompt to Claude
   console.log(`📜 Prompt sent to Claude. Now sit and wait`);
+  console.log("\n⏳ Claude is working...\n");
 
-  // Collect the output and errors
-  const [output, errorOutput] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text()
-  ]);
-  
+  // Process streaming output
+  const reader = proc.stdout.getReader();
+  const decoder = new TextDecoder();
+  let fullOutput = "";
+  let lastMessage = null;
+  let turnCount = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value, { stream: true });
+      fullOutput += chunk;
+      
+      // Process each line (streaming JSON outputs one object per line)
+      const lines = chunk.split('\n').filter(line => line.trim());
+      
+      for (const line of lines) {
+        try {
+          const jsonObj = JSON.parse(line);
+          
+          // Update display based on message type
+          if (jsonObj.type === "message") {
+            turnCount++;
+            // Clear previous line and show turn count
+            process.stdout.write(`\r🔄 Turn ${turnCount}: ${jsonObj.role} - ${jsonObj.content.substring(0, 60)}...`);
+          } else if (jsonObj.type === "tool_use") {
+            process.stdout.write(`\r🔧 Using tool: ${jsonObj.name} ${jsonObj.input ? `(${JSON.stringify(jsonObj.input).substring(0, 40)}...)` : ''}`);
+          } else if (jsonObj.type === "result") {
+            lastMessage = jsonObj;
+            process.stdout.write(`\r✅ Completed in ${jsonObj.num_turns} turns\n`);
+          }
+        } catch (e) {
+          // Not valid JSON, skip
+        }
+      }
+    }
+  } catch (error) {
+    console.error("\nError reading stream:", error);
+  }
+
   // Wait for the process to complete
   const exitCode = await proc.exited;
   
   if (exitCode !== 0) {
+    const errorOutput = await new Response(proc.stderr).text();
     console.error("Command failed with stderr:", errorOutput);
     throw new Error(`Claude command failed with exit code ${exitCode}`);
   }
   
-  // Parse and display the JSON response
-  try {
-    const response = JSON.parse(output);
+  // Display final result
+  if (lastMessage) {
     console.log("\n📝 Claude Response:");
-    console.log(response.response || response);
+    console.log(lastMessage.result || lastMessage);
     
-    // Save to output directory with full datetime
+    // Save to output directory
     const outputDir = join(process.cwd(), "dev", "output", "raw");
     if (!existsSync(outputDir)) {
       await mkdir(outputDir, { recursive: true });
@@ -219,15 +256,13 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
     const filename = `${sessionId}-${outputType}.json`;
     const filepath = join(outputDir, filename);
     
-    await writeFile(filepath, JSON.stringify(response, null, 2));
+    await writeFile(filepath, JSON.stringify(lastMessage, null, 2));
     console.log(`\n💾 Full response saved to ${filepath}`);
     
-    return response;
-  } catch (error) {
-    // If not JSON, just display the raw output
-    console.log(output);
-    return null;
+    return lastMessage;
   }
+  
+  return null;
 }
 
 // Load follow-up commands from END-FLOW.md

@@ -8,11 +8,11 @@ set -e
 # Configuration
 BACKUP_DIR="/backups"
 DB_HOST="db"
-DB_NAME="${POSTGRES_DB:-conkero}"
-DB_USER="${POSTGRES_USER:-conkero}"
+DB_NAME="${POSTGRES_DB:-${PROJECT_NAME:-myapp}}"
+DB_USER="${POSTGRES_USER:-postgres}"
 RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-30}"
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-BACKUP_FILE="${BACKUP_DIR}/conkero-backup-${TIMESTAMP}.sql"
+BACKUP_FILE="${BACKUP_DIR}/${PROJECT_NAME:-myapp}-backup-${TIMESTAMP}.sql"
 
 # Create backup directory if it doesn't exist
 mkdir -p "${BACKUP_DIR}"
@@ -33,11 +33,11 @@ if [ -f "${BACKUP_FILE}" ]; then
     
     # Remove old backups
     echo "[$(date)] Removing backups older than ${RETENTION_DAYS} days..."
-    find "${BACKUP_DIR}" -name "conkero-backup-*.sql.gz" -type f -mtime +${RETENTION_DAYS} -delete
+    find "${BACKUP_DIR}" -name "${PROJECT_NAME:-myapp}-backup-*.sql.gz" -type f -mtime +${RETENTION_DAYS} -delete
     
     # List remaining backups
     echo "[$(date)] Current backups:"
-    ls -lh "${BACKUP_DIR}"/conkero-backup-*.sql.gz 2>/dev/null || echo "No backups found"
+    ls -lh "${BACKUP_DIR}"/${PROJECT_NAME:-myapp}-backup-*.sql.gz 2>/dev/null || echo "No backups found"
 else
     echo "[$(date)] ERROR: Backup failed!"
     exit 1

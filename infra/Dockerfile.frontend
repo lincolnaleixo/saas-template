@@ -10,14 +10,11 @@ COPY bun.lockb* ./
 RUN bun install
 
 # Copy frontend source code and config
-COPY web ./web
+COPY frontend ./frontend
 COPY vite.config.js ./
 
-# Expose port
-EXPOSE 4001
+# Expose port (configurable via environment)
+EXPOSE ${PORT:-4001}
 
-# Set working directory to web folder
-WORKDIR /app
-
-# Run dev server with correct port
-CMD ["bun", "run", "vite", "--host", "0.0.0.0", "--port", "4001"]
+# Run dev server
+CMD ["bun", "run", "vite", "--host", "0.0.0.0", "--port", "${PORT:-4001}"]

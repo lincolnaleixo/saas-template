@@ -1,11 +1,11 @@
 # Upstream definitions
 upstream api_backend {
-    server api:8000;
+    server api:${API_PORT:-8000};
     keepalive 32;
 }
 
 upstream frontend_backend {
-    server frontend:4001;
+    server frontend:80;
     keepalive 32;
 }
 
@@ -13,7 +13,7 @@ upstream frontend_backend {
 server {
     listen 80;
     listen [::]:80;
-    server_name _;
+    server_name ${DOMAIN_NAME} www.${DOMAIN_NAME};
 
     # Allow certbot challenges
     location /.well-known/acme-challenge/ {
@@ -30,11 +30,11 @@ server {
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name _;
+    server_name ${DOMAIN_NAME} www.${DOMAIN_NAME};
 
-    # SSL configuration - will be updated by init script
-    ssl_certificate /etc/letsencrypt/live/certificate/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/certificate/privkey.pem;
+    # SSL configuration
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN_NAME}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN_NAME}/privkey.pem;
     
     # SSL security settings
     ssl_protocols TLSv1.2 TLSv1.3;
@@ -52,7 +52,13 @@ server {
     # OCSP stapling
     ssl_stapling on;
     ssl_stapling_verify on;
-    ssl_trusted_certificate /etc/letsencrypt/live/certificate/chain.pem;
+    ssl_trusted_certificate /etc/letsencrypt/live/${DOMAIN_NAME}/chain.pem;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
 
     # API routes
     location /api {
@@ -75,17 +81,26 @@ server {
         limit_req zone=api_limit burst=20 nodelay;
     }
 
-    # Frontend routes
-    location / {
-        proxy_pass http://frontend_backend;
+    # WebSocket support for API
+    location /api/ws {
+        proxy_pass http://api_backend;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
+        proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
+    }
+
+    # Frontend routes
+    location / {
+        proxy_pass http://frontend_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         
         # Rate limiting for general traffic
         limit_req zone=general_limit burst=50 nodelay;
@@ -103,5 +118,15 @@ server {
         access_log off;
         return 200 "healthy\n";
         add_header Content-Type text/plain;
+    }
+
+    # API documentation (optional)
+    location /api-docs {
+        proxy_pass http://api_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }

@@ -9,11 +9,15 @@ COPY bun.lockb* ./
 # Install dependencies
 RUN bun install
 
-# Copy API source code
-COPY api ./api
+# Copy backend source code
+COPY backend ./backend
 
-# Expose port
-EXPOSE 8000
+# Copy migrations for production deployments
+COPY migrations ./migrations
+COPY drizzle.config.ts ./
 
-# Run with hot reload
-CMD ["bun", "run", "--watch", "api/index.ts"]
+# Expose port (configurable via environment)
+EXPOSE ${PORT:-8000}
+
+# Run the server
+CMD ["bun", "run", "backend/server.ts"]

@@ -9,8 +9,10 @@ COPY bun.lockb* ./
 # Install dependencies
 RUN bun install
 
-# Copy scheduler source code
-COPY scheduler ./scheduler
+# Copy worker source code
+COPY worker ./worker
+# Copy backend (for shared job definitions)
+COPY backend ./backend
 
 # Run with hot reload
-CMD ["bun", "run", "--watch", "scheduler/index.ts"]
+CMD ["bun", "run", "--watch", "worker/index.ts"]

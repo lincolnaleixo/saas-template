@@ -2,3 +2,11 @@
 - falar que tem que ser DDD
 - falar que tem que usar lint depois e check for ts errors tambem e fix
 Criar um script para isso: perguntaria se é nova feature , improvement ou bugfix, daí automaticamente: execute o command x para new feature. I command y para bugfix . E depois o roda o git(na verdade poderia até ter o git dentro do command" no command sempre incluir para pensar . Bugfix talvez pensaria hard? Talvez até definir qual modelo usar dependendo? No script deixar tipo também pegando por cada feature / bug como um todo para o Claude fazer por todo também. Tipo o script pergunta qual seria a feature eu falaria, depois perguntaria se tem mais alguma coisa e daí se não tiver mais nada (apertar enter) ele start
+
+
+o flow seria
+- pergunta sobre as features
+- implementa
+- escreve comments etc nas coisas que criou/alterou
+- atualiza project
+- git

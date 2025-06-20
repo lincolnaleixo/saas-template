@@ -103,12 +103,11 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
   
   // Add continue flag if this is a follow-up
   if (continueConversation) {
-    args.splice(2, 0, "--continue"); // Insert after 'claude' and before other flags
+    args.push("--continue");
   }
   
-  // Add the print flag and prompt as separate arguments
-  args.push("--print");
-  args.push(prompt);
+  // Add the print flag and prompt using short form
+  args.push("-p", prompt);
 
   // Execute claude command in non-interactive mode
   const proc = Bun.spawn(args, {

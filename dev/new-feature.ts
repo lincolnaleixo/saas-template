@@ -2,6 +2,7 @@
 
 import { readFile } from "fs/promises";
 import { join } from "path";
+import { runGitCommit } from "./git.js";
 
 /**
  * Interactive script for new feature requests. Collects multiple features from user input,
@@ -84,22 +85,52 @@ function formatFeaturesAsTodos(features: string[]): string {
   return returnPrompt;
 }
 
-async function sendToClaude(prompt: string): Promise<void> {
+async function sendToClaude(prompt: string, continueConversation: boolean = false): Promise<void> {
   console.log("\n🚀 Sending to Claude Code...\n");
 
-  // Execute claude command
-  const proc = Bun.spawn(["claude", "--dangerously-skip-permissions"], {
-    stdin: "pipe",
-    stdout: "inherit",
+  // Build command arguments
+  const args = [
+    "claude", 
+    "--dangerously-skip-permissions",
+    "--output-format", "json",
+    "--print", prompt
+  ];
+  
+  // Add continue flag if this is a follow-up
+  if (continueConversation) {
+    args.splice(2, 0, "--continue"); // Insert after 'claude' and before other flags
+  }
+
+  // Execute claude command in non-interactive mode
+  const proc = Bun.spawn(args, {
+    stdout: "pipe",
     stderr: "inherit"
   });
 
-  // Send the prompt to claude
-  proc.stdin.write(prompt);
-  proc.stdin.end();
-
+  // Collect the output
+  const output = await new Response(proc.stdout).text();
+  
   // Wait for the process to complete
-  await proc.exited;
+  const exitCode = await proc.exited;
+  
+  if (exitCode !== 0) {
+    throw new Error(`Claude command failed with exit code ${exitCode}`);
+  }
+  
+  // Parse and display the JSON response
+  try {
+    const response = JSON.parse(output);
+    console.log("\n📝 Claude Response:");
+    console.log(response.response || response);
+    
+    // Optionally save to file for debugging
+    const filename = continueConversation ? "claude-response-continued.json" : "claude-response.json";
+    await Bun.write(filename, JSON.stringify(response, null, 2));
+    console.log(`\n💾 Full response saved to ${filename}`);
+  } catch (error) {
+    // If not JSON, just display the raw output
+    console.log(output);
+  }
 }
 
 // Load follow-up commands from END-FLOW.md
@@ -150,31 +181,54 @@ async function main() {
     // Load follow-up commands from END-FLOW.md
     const followUpCommands = await loadFollowUpCommands();
     
-    // Format the complete prompt
+    // Format the complete prompt for features
     const featuresPrompt = formatFeaturesAsTodos(features);
     
-    let fullPrompt = 'This is a NEW FEATURE implementation request';
-    fullPrompt += `Follow strictly ALL guidelines from the documentation below:`;
-    fullPrompt += `${documentation}`;
-    fullPrompt += `${featuresPrompt}`;
+    let featureImplementationPrompt = 'This is a NEW FEATURE implementation request. ';
+    featureImplementationPrompt += `Follow strictly ALL guidelines from the documentation below:`;
+    featureImplementationPrompt += `${documentation}`;
+    featureImplementationPrompt += `${featuresPrompt}`;
     
-    // Send initial feature request
-    // await sendToClaude(fullPrompt);
-    console.log("\n📤 Sending feature request to Claude Code...\n");
-    console.log(fullPrompt);
+    // Step 1: Send feature implementation request
+    console.log("\n🚀 Step 1: Implementing features...");
+    await sendToClaude(featureImplementationPrompt, false);
     
     console.log("\n✅ Features implemented!");
     
-    // Run follow-up commands
-    console.log("\n🔄 Running follow-up commands from END-FLOW.md...");
+    // Step 2: Send end workflow tasks using --continue
+    console.log("\n🔄 Step 2: Running post-implementation checklist...");
     
-    for (const command of followUpCommands) {
-      console.log(`\n📌 ${command.name}...`);
-      // await sendToClaude(command.prompt);
-      console.log(`\nExecuting command: ${command.prompt}`);
+    let endWorkflowPrompt = '---- \n\nNow that the features are implemented, please execute the following post-implementation checklist:\n\n';
+    
+    followUpCommands.forEach((command, index) => {
+      endWorkflowPrompt += `${index + 1}. **${command.name}**: ${command.prompt}\n`;
+    });
+    
+    endWorkflowPrompt += '\n\nPlease go through each checklist item in order and ensure all quality gates are met.';
+    
+    // Continue the conversation with end workflow tasks
+    await sendToClaude(endWorkflowPrompt, true);
+
+    console.log("\n✅ Post-implementation checklist completed!");
+
+    // Step 3: Commit changes
+    console.log("\n🔄 Step 3: Committing changes to git...");
+    
+    try {
+      const gitResult = await runGitCommit();
       
-      // Small delay between commands
-      // await new Promise(resolve => setTimeout(resolve, 1000));
+      if (gitResult.success) {
+        console.log(`\n✅ Git commit successful: ${gitResult.message}`);
+        if (gitResult.branch) {
+          console.log(`   📌 New branch created: ${gitResult.branch}`);
+        }
+      } else {
+        console.log(`\n⚠️  Git commit failed: ${gitResult.message}`);
+        console.log("   You may need to commit changes manually.");
+      }
+    } catch (gitError) {
+      console.log(`\n⚠️  Git commit error: ${gitError.message}`);
+      console.log("   You may need to commit changes manually.");
     }
     
     console.log("\n✨ All done! Features have been implemented, tested, documented, and committed.");

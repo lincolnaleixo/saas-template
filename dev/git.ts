@@ -616,14 +616,47 @@ async function handleGitOperations(): Promise<void> {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 6) Entrypoint                                                              */
+/* 6) Export function for programmatic use                                    */
 /* -------------------------------------------------------------------------- */
 
-(async () => {
+export async function runGitCommit(): Promise<{ success: boolean; message: string; branch?: string }> {
   try {
+    // Capture the current branch before operations
+    const initialBranch = await executeCommand('git rev-parse --abbrev-ref HEAD');
+    
+    // Check if there are changes to commit
+    const status = await executeCommand('git status --porcelain');
+    if (!status) {
+      return { success: true, message: 'No changes to commit' };
+    }
+    
     await handleGitOperations();
+    
+    // Get the final branch name (might be different if a new branch was created)
+    const finalBranch = await executeCommand('git rev-parse --abbrev-ref HEAD');
+    
+    return { 
+      success: true, 
+      message: 'Git operations completed successfully',
+      branch: finalBranch !== initialBranch ? finalBranch : undefined
+    };
   } catch (e: any) {
-    console.log(`\n❌ Process failed: ${e.message}`);
-    process.exit(1);
+    return { success: false, message: e.message };
   }
-})();
+}
+
+/* -------------------------------------------------------------------------- */
+/* 7) Entrypoint - Only run if called directly                               */
+/* -------------------------------------------------------------------------- */
+
+// Check if this file is being run directly (not imported)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    try {
+      await handleGitOperations();
+    } catch (e: any) {
+      console.log(`\n❌ Process failed: ${e.message}`);
+      process.exit(1);
+    }
+  })();
+}

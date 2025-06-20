@@ -116,7 +116,7 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
   });
 
   // Sent prompt to Claude
-  console.log(`📜 Prompt sent to Claude. Let them code`);
+  console.log(`📜 Prompt sent to Claude. Now sit and wait`);
 
   // Collect the output and errors
   const [output, errorOutput] = await Promise.all([

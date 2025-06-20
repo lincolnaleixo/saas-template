@@ -2,7 +2,7 @@ criar os scripts de code
 
 - talvez pegar o prompt antes e ajustar usando AI? um AI free tipo deepseek groq or cerberas
 
-
+- o primeiro usar opus (se tiver disponivel, se não usar sonet) e o segundo usar sonnet
 - ver se seria melhor voltar em json a resposta, testar com o new-feature primeiro e depois ajustar para os outros (https://docs.anthropic.com/en/docs/claude-code/common-workflows)
 
 

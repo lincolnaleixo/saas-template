@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { readFile, writeFile, mkdir } from "fs/promises";
+import { readFile, writeFile, mkdir, appendFile } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
 import { runGitCommit } from "./git.js";
@@ -175,6 +175,87 @@ async function loadFollowUpCommands(): Promise<string> {
   }
 }
 
+// Generate markdown summary from session data
+async function generateMarkdownSummary(sessionSummary: any): Promise<string> {
+  const { sessionId, timestamp, features, responses, gitResult } = sessionSummary;
+  
+  let markdown = `## 🚀 Feature Implementation Session\n\n`;
+  markdown += `**Session ID:** ${sessionId}\n`;
+  markdown += `**Date:** ${new Date(timestamp).toLocaleString()}\n\n`;
+  
+  // Features requested
+  markdown += `### 📋 Features Implemented\n\n`;
+  features.forEach((feature: string, index: number) => {
+    markdown += `${index + 1}. ${feature}\n`;
+  });
+  markdown += `\n`;
+  
+  // Implementation result
+  if (responses.featureImplementation) {
+    markdown += `### ✅ Implementation Result\n\n`;
+    markdown += `${responses.featureImplementation.result}\n\n`;
+  }
+  
+  // Extract final summary from end workflow response
+  if (responses.endWorkflow && responses.endWorkflow.result) {
+    const endResult = responses.endWorkflow.result;
+    
+    // Try to extract the Final Summary section
+    const summaryMatch = endResult.match(/### 7\. \*\*Final Summary\*\*[\s\S]*?(?=##|$)/);
+    if (summaryMatch) {
+      markdown += `### 📝 Implementation Details\n`;
+      markdown += summaryMatch[0].replace(/### 7\. \*\*Final Summary\*\*/, '');
+      markdown += `\n`;
+    }
+    
+    // Try to extract quality gates status
+    const qualityMatch = endResult.match(/## 🔍 Quality Gates Status[\s\S]*?(?=##|The implementation|$)/);
+    if (qualityMatch) {
+      markdown += `### ✓ Quality Gates Status\n`;
+      markdown += qualityMatch[0].replace(/## 🔍 Quality Gates Status/, '');
+      markdown += `\n`;
+    }
+  }
+  
+  // Git result
+  if (gitResult) {
+    markdown += `### 🔧 Git Status\n\n`;
+    markdown += gitResult.success ? `✅ ${gitResult.message}` : `❌ ${gitResult.message}`;
+    if (gitResult.branch) {
+      markdown += `\n📌 Branch: ${gitResult.branch}`;
+    }
+    markdown += `\n\n`;
+  }
+  
+  markdown += `---\n\n`;
+  
+  return markdown;
+}
+
+// Update history file with new session
+async function updateHistory(sessionSummary: any): Promise<void> {
+  const outputDir = join(process.cwd(), "dev", "output");
+  const historyPath = join(outputDir, "HISTORY.md");
+  
+  // Generate markdown summary
+  const markdownSummary = await generateMarkdownSummary(sessionSummary);
+  
+  if (existsSync(historyPath)) {
+    // Read existing content
+    const existingContent = await readFile(historyPath, "utf-8");
+    
+    // Prepend new session (latest on top)
+    const newContent = markdownSummary + existingContent;
+    await writeFile(historyPath, newContent);
+  } else {
+    // Create new history file with header
+    const header = `# 📜 Feature Implementation History\n\n`;
+    await writeFile(historyPath, header + markdownSummary);
+  }
+  
+  console.log(`\n📜 History updated: ${historyPath}`);
+}
+
 async function main() {
   try {
     // Generate session ID with full datetime
@@ -277,9 +358,17 @@ async function main() {
       completedAt: new Date().toISOString()
     };
     
-    const summaryPath = join(outputDir, `${sessionId}-summary.json`);
+    const rawDir = join(outputDir, "raw");
+    if (!existsSync(rawDir)) {
+      await mkdir(rawDir, { recursive: true });
+    }
+    
+    const summaryPath = join(rawDir, `${sessionId}-summary.json`);
     await writeFile(summaryPath, JSON.stringify(sessionSummary, null, 2));
     console.log(`\n📊 Complete session summary saved to ${summaryPath}`);
+    
+    // Update history with markdown summary
+    await updateHistory(sessionSummary);
     
     console.log("\n✨ All done! Features have been implemented, tested, documented, and committed.");
 

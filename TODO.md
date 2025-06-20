@@ -8,6 +8,8 @@ backend
 Criar um script para isso: perguntaria se é nova feature , improvement ou bugfix, daí automaticamente: execute o command x para new feature. I command y para bugfix . E depois o roda o git(na verdade poderia até ter o git dentro do command" no command sempre incluir para pensar . Bugfix talvez pensaria hard? Talvez até definir qual modelo usar dependendo? No script deixar tipo também pegando por cada feature / bug como um todo para o Claude fazer por todo também. Tipo o script pergunta qual seria a feature eu falaria, depois perguntaria se tem mais alguma coisa e daí se não tiver mais nada (apertar enter) ele start
 - criar e testar o new-feature
 
+- escolher library de css e deixar claro no frontend
+- perguntar e resolver como seria com a api , queria ter um lugar para testar a api e automaticamente se possivel atualizar o documentation baseado no codigo que tenho (tem alguma ligrary para isso?)
 
 o flow seria
 - pergunta sobre as features

@@ -78,7 +78,12 @@ my‑saas/
 
 7. **TYPE SAFETY** - Maintain strict TypeScript types. Use Zod schemas for runtime validation.
 
-8. **ALWAYS USE BUN, BUT IN DOCKER**
+8. **ALWAYS USE BUN** - For all operations:
+   - Use `bun` for package management, NOT `npm` or `yarn`
+   - Use `bun run` for scripts, NOT `npm run` or `node`
+   - Use `bun install` for dependencies, NOT `npm install`
+   - All scripts should have `#!/usr/bin/env bun` shebang
+   - Always run inside Docker containers for consistency
 
 ## Key Concepts and Best Practices
 
@@ -95,58 +100,18 @@ my‑saas/
 * Always use SSL in production - no HTTP-only option
 * Nginx templates processed at runtime with environment variables
 
-### Environment Variables Best Practices
+### Development Standards
 
-1. **Never use fallback values in production code**
-   ```typescript
-   // ❌ WRONG
-   const apiUrl = process.env.API_URL || 'http://localhost:8000';
+- Everything runs in Docker containers - no local runtime dependencies
+- Strict TypeScript with no implicit any
+- All inputs validated with Zod schemas
+- Comprehensive error handling and logging
+- Security-first approach in all implementations
 
-   // ✅ CORRECT
-   const apiUrl = process.env.API_URL;
-   if (!apiUrl) {
-     throw new Error('API_URL environment variable is required');
-   }
-   ```
+### Documentation Requirements
 
-2. **Validate required environment variables at startup**
-   ```typescript
-   // src/config/env.validation.ts
-   const requiredEnvVars = [
-     'DATABASE_URL',
-     'REDIS_URL',
-     'API_PORT',
-     'AUTH_SECRET'
-   ];
-
-   for (const envVar of requiredEnvVars) {
-     if (!process.env[envVar]) {
-       throw new Error(`Missing required environment variable: ${envVar}`);
-     }
-   }
-   ```
-
-3. **Use type-safe environment variable access**
-   ```typescript
-   // src/config/env.ts
-   export const env = {
-     database: {
-       url: process.env.DATABASE_URL!,
-       port: parseInt(process.env.DB_PORT!),
-     },
-     redis: {
-       url: process.env.REDIS_URL!,
-       port: parseInt(process.env.REDIS_PORT!),
-     },
-     api: {
-       port: parseInt(process.env.API_PORT!),
-       url: process.env.NEXT_PUBLIC_API_URL!,
-     },
-   } as const;
-   ```
-
-4. **Document all environment variables**
-   - Maintain `.env.example` with all variables and descriptions
-   - Include type, format, and valid values
-   - Mark required vs optional variables
-   - Provide secure default generation commands
+- Maintain `.env.example` with all required variables
+- Document API endpoints with OpenAPI/Swagger
+- Keep README.md updated with setup instructions
+- Add inline comments for complex logic
+- Document architectural decisions in `/docs`

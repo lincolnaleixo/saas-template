@@ -1,6 +1,8 @@
 # Backend Guidelines
 
-This document defines the backend architecture, database principles, and API development standards.
+This document covers backend-specific architecture, database design, job processing, and API patterns.
+
+> **Note**: For general project guidelines, see GENERAL-GUIDELINES.md
 
 ## 🗄️ Database Architecture
 
@@ -13,9 +15,6 @@ This document defines the backend architecture, database principles, and API dev
 | **Version Control** | Migrations are version-controlled and immutable after creation |
 | **Schema Tracking** | Changes tracked via SHA-256 hashing, correlated with git commits |
 | **Transaction Safety** | All migrations run in transactions with automatic rollback on failure |
-
-### Migration Workflow
-See `workflow.md` for detailed migration procedures.
 
 ## 🚀 Cache & Job Queue
 
@@ -307,35 +306,65 @@ worker/                  # Separate worker service
 
 ## 🛠️ Development Standards
 
-### API Design Principles
+### API Design Patterns
 
-1. **Thin Controllers** - Controllers only handle HTTP concerns
+1. **Controller-Service-Repository Pattern**
    ```typescript
-   // ✅ CORRECT - Thin controller
+   // controllers/user.controller.ts - HTTP layer only
    export async function createUser(req: Request) {
      const data = await validateBody(req, createUserSchema);
      const user = await userService.create(data);
      return Response.json(user, { status: 201 });
    }
-   ```
 
-2. **Business Logic in Services** - All logic belongs in service layer
-   ```typescript
-   // services/user.service.ts
+   // services/user.service.ts - Business logic
    export async function create(data: CreateUserDTO) {
-     // Business rules, validation, database calls
      const hashedPassword = await hashPassword(data.password);
-     return db.insert(users).values({ ...data, password: hashedPassword });
+     return userRepository.create({ ...data, password: hashedPassword });
+   }
+
+   // repositories/user.repository.ts - Data access
+   export async function create(data: User) {
+     return db.insert(users).values(data).returning();
    }
    ```
 
-3. **Zod Schema Validation** - All inputs validated with Zod
+2. **Request/Response DTOs with Zod**
    ```typescript
+   // schemas/user.schema.ts
    export const createUserSchema = z.object({
      email: z.string().email(),
-     password: z.string().min(8),
-     name: z.string().min(2)
+     password: z.string().min(8).max(100),
+     name: z.string().min(2).max(50),
+     role: z.enum(['user', 'admin']).default('user')
    });
+
+   export type CreateUserDTO = z.infer<typeof createUserSchema>;
+   ```
+
+3. **Consistent Error Responses**
+   ```typescript
+   // utils/api-error.ts
+   export class ApiError extends Error {
+     constructor(
+       public statusCode: number,
+       public message: string,
+       public errors?: any[]
+     ) {
+       super(message);
+     }
+   }
+
+   // middleware/error-handler.ts
+   export function errorHandler(error: Error) {
+     if (error instanceof ApiError) {
+       return Response.json({
+         error: error.message,
+         errors: error.errors
+       }, { status: error.statusCode });
+     }
+     // Handle other errors...
+   }
    ```
 
 ### Automatic API Documentation
@@ -355,10 +384,13 @@ worker/                  # Separate worker service
 | **MailDev** | 1080 | Email testing UI |
 | **Custom Dashboard** | 3001 | Optional job status dashboard |
 
-### Performance Settings
-- Docker: `COMPOSE_BAKE=true` enabled by default
-- TypeScript: Strict mode with `es2022` target
-- ESLint 9 with Prettier integration
+### Performance Optimizations
+
+- Connection pooling for PostgreSQL
+- Redis connection reuse
+- Batch job processing with pg-boss
+- Response caching strategies
+- Query optimization with proper indexes
 
 ## ⚡ Quick Reference
 
@@ -508,30 +540,32 @@ NGINX_HTTP_PORT=80             # HTTP port
 NGINX_HTTPS_PORT=443           # HTTPS port
 ```
 
-### Usage in Code
-
-**Always use environment variables for connections:**
+### Backend Configuration Examples
 
 ```typescript
-// ❌ WRONG - Hardcoded ports
-const dbConfig = {
-  host: 'localhost',
-  port: 5432,
-  database: 'myapp'
+// config/database.ts
+export const dbConfig = {
+  connectionString: process.env.DATABASE_URL!,
+  max: parseInt(process.env.DB_POOL_SIZE || '10'),
+  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
+  connectionTimeoutMillis: parseInt(process.env.DB_CONNECT_TIMEOUT || '2000')
 };
 
-// ✅ CORRECT - Environment variables
-const dbConfig = {
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT),
-  database: process.env.DB_NAME
+// config/redis.ts
+export const redisConfig = {
+  url: process.env.REDIS_URL!,
+  maxRetriesPerRequest: 3,
+  enableReadyCheck: true,
+  lazyConnect: true
 };
 
-// ❌ WRONG - Hardcoded Redis URL
-const redis = new Redis('redis://localhost:6379');
-
-// ✅ CORRECT - Environment variable
-const redis = new Redis(process.env.REDIS_URL);
+// config/api.ts
+export const apiConfig = {
+  port: parseInt(process.env.API_PORT!),
+  corsOrigins: process.env.CORS_ORIGINS?.split(',') || [],
+  rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW || '900000'), // 15 min
+  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '100')
+};
 ```
 
 ### Docker Compose Configuration
@@ -575,20 +609,20 @@ services:
       retries: 3
 ```
 
-## 🚢 Development & Deployment Principles
+## 🏗️ Service Architecture
 
-### Docker Standards
+| Service | Responsibility | Scaling Strategy | Health Check |
+| ------- | -------------- | ---------------- | ------------ |
+| **API** | HTTP requests, creates jobs | Horizontal via load balancer | `/health` endpoint |
+| **Worker** | Processes background jobs | Horizontal via pg-boss | `/health` endpoint |
+| **Database** | Data persistence | Vertical + read replicas | pg_isready |
+| **Redis** | Cache & pub/sub | Vertical + clustering | redis-cli ping |
 
-* Container logs must include timestamps: `YYYYMMDD-HHMMSS [level] message`
-* Image naming convention: `myapp-service` (e.g., `myapp-api`, `myapp-worker`)
-* Project isolation: scripts must only manage project-specific containers
-* Everything runs in containers - no local dependencies
+### Backend-Specific Best Practices
 
-### Service Architecture
-
-| Service | Responsibility | Scaling |
-| ------- | -------------- | ------- |
-| **API** | HTTP requests, creates jobs | Horizontal |
-| **Worker** | Processes background jobs | Horizontal |
-| **Database** | Data persistence | Vertical |
-| **Redis** | Cache & job queues | Vertical |
+1. **Database Migrations**: Always run in transactions
+2. **API Versioning**: Use URL path versioning (`/v1/`, `/v2/`)
+3. **Error Handling**: Consistent error response format
+4. **Rate Limiting**: Implement per-user and per-IP limits
+5. **Request ID**: Add unique request ID for tracing
+6. **Graceful Shutdown**: Handle SIGTERM properly

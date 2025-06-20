@@ -38,7 +38,7 @@ frontend/
 │   └── dashboard-page.css
 ├── styles/              # Global styles and themes
 │   ├── variables.css    # CSS custom properties
-│   ├── global.css       # Base styles
+│   ├── global.css       # Base styles + FOUC prevention
 │   └── typography.css   # Font definitions
 ├── scripts/             # Global scripts
 │   └── global.js        # Shared utilities
@@ -58,6 +58,8 @@ frontend/
 │   └── fonts/
 ├── config/              # Frontend configuration
 │   └── env.ts           # Environment variables
+├── base/                # Base classes
+│   └── BaseComponent.ts # Base web component with FOUC prevention
 └── main.ts              # Entry point
 ```
 
@@ -65,33 +67,40 @@ frontend/
 
 ### Component Development Rules
 
-1. **Component Structure**
+1. **Use BaseComponent for FOUC Prevention**
    ```typescript
    // components/button/Button.ts
-   export class AppButton extends HTMLElement {
-     private shadow: ShadowRoot;
-     
+   import { BaseComponent } from '../base/BaseComponent';
+   
+   // Create styles once, reuse for all instances
+   const styles = new CSSStyleSheet();
+   styles.replaceSync(`
+     :host {
+       display: inline-block;
+     }
+     /* Component styles */
+   `);
+   
+   export class AppButton extends BaseComponent {
      constructor() {
        super();
-       this.shadow = this.attachShadow({ mode: 'open' });
-     }
-     
-     connectedCallback() {
-       this.render();
-       this.attachEventListeners();
+       this.shadow.adoptedStyleSheets = [styles];
      }
      
      render() {
-       const template = document.createElement('template');
-       template.innerHTML = `
-         <link rel="stylesheet" href="/frontend/components/button/button.css">
-         ${this.getTemplate()}
+       this.shadow.innerHTML = `
+         <button><slot></slot></button>
        `;
-       this.shadow.appendChild(template.content.cloneNode(true));
+       this.attachEventListeners();
      }
      
-     getTemplate(): string {
-       // Load from template.html or define here
+     private attachEventListeners() {
+       const button = this.shadow.querySelector('button');
+       button?.addEventListener('click', this.handleClick.bind(this));
+     }
+     
+     private handleClick(e: Event) {
+       // Handle click
      }
    }
    
@@ -208,6 +217,51 @@ toast.show('User created successfully', 'success');
      --breakpoint-md: 768px;
      --breakpoint-lg: 992px;
      --breakpoint-xl: 1200px;
+     
+     /* Skeleton Loading */
+     --skeleton-bg: #e9ecef;
+     --skeleton-shine: #f8f9fa;
+   }
+   ```
+
+2. **Skeleton Loading Styles** (`styles/global.css`)
+   ```css
+   /* Skeleton loading animation */
+   .skeleton {
+     background: var(--skeleton-bg);
+     position: relative;
+     overflow: hidden;
+   }
+   
+   .skeleton::after {
+     content: '';
+     position: absolute;
+     top: 0;
+     right: 0;
+     bottom: 0;
+     left: 0;
+     background: linear-gradient(
+       90deg,
+       transparent,
+       var(--skeleton-shine),
+       transparent
+     );
+     animation: skeleton-loading 1.5s infinite;
+   }
+   
+   @keyframes skeleton-loading {
+     0% { transform: translateX(-100%); }
+     100% { transform: translateX(100%); }
+   }
+   
+   .skeleton-line {
+     height: 1em;
+     margin-bottom: 0.5em;
+     border-radius: 4px;
+   }
+   
+   .skeleton-line.short {
+     width: 60%;
    }
    ```
 
@@ -243,20 +297,171 @@ toast.show('User created successfully', 'success');
 
 ## ⚡ Performance Guidelines
 
-1. **Loading Strategy**
-   - Lazy load components with dynamic imports
-   - Preload critical CSS
-   - Use resource hints (prefetch, preconnect)
+### Preventing Flash of Unstyled Content (FOUC)
 
-2. **Bundle Optimization**
-   - ES modules for tree-shaking
-   - Code splitting by route
-   - Minify CSS and JS in production
+Web components can show a "flash" while loading. Here's how we prevent it:
 
-3. **Image Optimization**
-   - Use WebP with fallbacks
-   - Responsive images with srcset
-   - Lazy load below-the-fold images
+1. **Hide Undefined Elements** (`styles/global.css`)
+   ```css
+   /* Hide all custom elements until they're defined */
+   :not(:defined) {
+     visibility: hidden;
+   }
+   
+   /* Optional: Smooth fade-in for all components */
+   body {
+     opacity: 0;
+     transition: opacity 0.3s ease-in-out;
+   }
+   body.components-ready {
+     opacity: 1;
+   }
+   ```
+
+2. **Component Registration Order** (`main.ts`)
+   ```typescript
+   // Import all components BEFORE any other logic
+   import './components/button/Button';
+   import './components/modal/Modal';
+   import './components/toast/Toast';
+   
+   // Wait for critical components to be defined
+   async function initializeApp() {
+     await Promise.all([
+       customElements.whenDefined('app-button'),
+       customElements.whenDefined('app-modal'),
+       customElements.whenDefined('app-toast')
+     ]);
+     
+     // Show the app
+     document.body.classList.add('components-ready');
+   }
+   
+   initializeApp();
+   ```
+
+3. **Base Component with Built-in FOUC Prevention**
+   ```typescript
+   // components/base/BaseComponent.ts
+   export abstract class BaseComponent extends HTMLElement {
+     protected shadow: ShadowRoot;
+     
+     constructor() {
+       super();
+       this.shadow = this.attachShadow({ mode: 'open' });
+       // Hide until rendered
+       this.style.visibility = 'hidden';
+     }
+     
+     connectedCallback() {
+       this.render();
+       // Show after next frame to ensure styles are applied
+       requestAnimationFrame(() => {
+         this.style.visibility = 'visible';
+       });
+     }
+     
+     abstract render(): void;
+   }
+   ```
+
+4. **Constructable Stylesheets for Instant Styles**
+   ```typescript
+   // components/button/Button.ts
+   const buttonStyles = new CSSStyleSheet();
+   buttonStyles.replaceSync(`
+     :host {
+       display: inline-block;
+       /* Component styles available immediately */
+     }
+     button {
+       padding: var(--spacing-sm) var(--spacing-md);
+       background: var(--color-primary);
+       color: white;
+       border: none;
+       border-radius: 4px;
+       cursor: pointer;
+     }
+   `);
+   
+   export class AppButton extends BaseComponent {
+     constructor() {
+       super();
+       // Styles applied instantly, no external CSS loading
+       this.shadow.adoptedStyleSheets = [buttonStyles];
+     }
+     
+     render() {
+       this.shadow.innerHTML = `
+         <button><slot></slot></button>
+       `;
+     }
+   }
+   ```
+
+### Loading Optimization
+
+1. **Module Preloading**
+   ```html
+   <!-- In your HTML head -->
+   <link rel="modulepreload" href="/frontend/main.js">
+   <link rel="modulepreload" href="/frontend/components/index.js">
+   ```
+
+2. **Critical CSS Inlining**
+   ```html
+   <!-- Inline critical styles in <head> -->
+   <style>
+     /* Only the essential above-the-fold styles */
+     :not(:defined) { visibility: hidden; }
+     body { margin: 0; font-family: var(--font-family-base); }
+     /* Component placeholders to prevent layout shift */
+     app-header { display: block; height: 60px; }
+     app-hero { display: block; min-height: 400px; }
+   </style>
+   ```
+
+3. **Skeleton Loading States**
+   ```typescript
+   // components/card/Card.ts
+   export class AppCard extends BaseComponent {
+     render() {
+       // Show skeleton immediately
+       this.shadow.innerHTML = `
+         <div class="skeleton">
+           <div class="skeleton-line"></div>
+           <div class="skeleton-line short"></div>
+         </div>
+       `;
+       
+       // Load actual content
+       this.loadContent();
+     }
+     
+     async loadContent() {
+       const data = await this.fetchData();
+       this.shadow.innerHTML = `
+         <article>
+           <h3>${data.title}</h3>
+           <p>${data.content}</p>
+         </article>
+       `;
+     }
+   }
+   ```
+
+### Bundle Optimization
+
+- ES modules for tree-shaking
+- Code splitting by route
+- Minify CSS and JS in production
+- Use Bun's fast bundling for development
+
+### Image Optimization
+
+- Use WebP with fallbacks
+- Responsive images with srcset
+- Lazy load below-the-fold images
 
 ## 🔒 Security Practices
 

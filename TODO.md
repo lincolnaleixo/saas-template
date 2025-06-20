@@ -1,7 +1,19 @@
+criar os scripts de code
+
 - talvez pegar o prompt antes e ajustar usando AI? um AI free tipo deepseek groq or cerberas
-- adjust o end-flow mais uma vez, adicionei mais algumas coisas
+
+- o end flow tem que pegar usar o mesmo context da ultima conversa
 
 - ver se seria melhor voltar em json a resposta, testar com o new-feature primeiro e depois ajustar para os outros (https://docs.anthropic.com/en/docs/claude-code/common-workflows)
+
+
+o script depois no final tem que rodar o git.ts
+### 8. **Git Commit**
+- Execute `./dev/git.ts` to:
+  - Create intelligent branch name based on changes
+  - Generate AI-powered commit message
+  - Run pre-commit hooks (backup, migrations)
+  - Push changes to remote repository
 
 
 - criar e testar o new-feature
@@ -9,11 +21,7 @@
 - criar e testar o improvement feature
 - criar e testar o new job
 
-
-
-
 - Ajustar os scripts no scripts folder
-
 
 
 Para o claude code:
@@ -24,8 +32,6 @@ Para o claude code:
 - pedir para criar os arquivos e folders de frontend baseado no guidelines
 - Implementar login com google
 - Criar 3 jobs baseado no worker
-
-
 
 Para mim
 - Testar dev

@@ -48,21 +48,21 @@ my‑saas/
 
 ### ALWAYS FOLLOW THESE RULES:
 
-0. **ENGLISH ONLY** - All code comments, documentation, commit messages, and any text in the codebase MUST be in English. This ensures global collaboration and maintainability.
+1. **ENGLISH ONLY** - All code comments, documentation, commit messages, and any text in the codebase MUST be in English. This ensures global collaboration and maintainability.
 
-1. **NO MOCK DATA** - Never use mock or fake data unless explicitly asked. Always implement with real data sources.
+2. **NO MOCK DATA** - Never use mock or fake data unless explicitly asked. Always implement with real data sources.
 
-2. **NO SIMULATED FEATURES** - Never simulate or fake functionality. Implement real, working features.
+3. **NO SIMULATED FEATURES** - Never simulate or fake functionality. Implement real, working features.
 
-3. **REAL IMPLEMENTATIONS ONLY** - Every feature must work with real data and real integrations.
+4. **REAL IMPLEMENTATIONS ONLY** - Every feature must work with real data and real integrations.
 
-4. **CODE DOCUMENTATION** - For complex files and functions, add clear comments IN ENGLISH explaining:
+5. **CODE DOCUMENTATION** - For complex files and functions, add clear comments IN ENGLISH explaining:
    - What the code does
    - How it works
    - Why design decisions were made
    - Any important context for future developers
 
-5. **NO HARDCODED VALUES** - NEVER hardcode any configuration values, especially:
+6. **NO HARDCODED VALUES** - NEVER hardcode any configuration values, especially:
    - Database connections and ports
    - API URLs and ports
    - Redis connections and ports
@@ -76,11 +76,11 @@ my‑saas/
    - ✅ CORRECT: `port: parseInt(process.env.DB_PORT)`
    - ✅ CORRECT: `database: process.env.DB_NAME`
 
-6. **SECURITY FIRST** - Always validate inputs, sanitize data, and follow security best practices.
+7. **SECURITY FIRST** - Always validate inputs, sanitize data, and follow security best practices.
 
-7. **TYPE SAFETY** - Maintain strict TypeScript types. Use Zod schemas for runtime validation.
+8. **TYPE SAFETY** - Maintain strict TypeScript types. Use Zod schemas for runtime validation.
 
-8. **ALWAYS USE BUN INSIDE DOCKER** - For all operations.
+9. **ALWAYS USE BUN INSIDE DOCKER** - For all operations.
 
 ## Key Concepts and Best Practices
 

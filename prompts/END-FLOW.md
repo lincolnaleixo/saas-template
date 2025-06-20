@@ -1,19 +1,64 @@
 # End Flow Commands
 
-These commands are automatically executed after implementing new features:
+## 📋 Post-Implementation Checklist
 
-1. **Update .env.example and .env.local if needed** - Update environment variable files if any new environment variables were added during implementation
-2. **Update ./scripts files if needed** - Update scripts files inside the script folder if new services or configurations were added and if needed
-3. **Lint and fix all the lint errors** - Run the project's linting tools and automatically fix any linting errors found
-4. **Fix all the typescript errors** - Run TypeScript compiler and fix any type errors that were introduced
-5. **Give me a nice summary what you did and what I need to test** - Provide a comprehensive summary of all changes made and detailed testing instructions
-6. **Execute ./dev/git.ts** - Run the git script to create a well-formatted commit with all changes
+### 1. **Code Documentation**
+- Add comprehensive comments to all new/modified code
+- Include JSDoc comments for functions and classes
+- Document complex logic and business rules
+- Add inline comments for non-obvious code sections
 
-- implementa
-- escreve comments etc nas coisas que criou/alterou
-- atualiza readme
-- atualiza features.md
-- git.ts
-- ajuste docker compose or dockfiles if needed
+### 2. **Environment Configuration**
+- Update `.env.example` with any new environment variables
+- Update `.env.local` with development values
+- Document new variables with descriptions and examples
+- Ensure all secrets have placeholder values in `.env.example`
 
-think
+### 3. **Scripts and Infrastructure**
+- Update scripts in `./scripts/` folder if needed
+- Modify Docker Compose files if new services were added
+- Update Dockerfiles for any new dependencies
+- Ensure all ports are configurable via environment variables
+
+### 4. **Code Quality - Linting**
+- Run `bun run lint` (or appropriate linter)
+- Fix all ESLint/Prettier errors automatically
+- Manually resolve any remaining lint warnings
+- Ensure code follows project style guidelines
+
+### 5. **Code Quality - TypeScript**
+- Run `bun run typecheck` (or `tsc --noEmit`)
+- Fix all TypeScript compilation errors
+- Ensure proper types for all new code
+- Add type definitions for any external libraries
+
+### 6. **Documentation Updates**
+- Update `README.md` if needed
+- Update `FEATURES.md` if needed with:
+  - New feature descriptions
+  - Current implementation status
+  - Future roadmap updates
+
+### 7. **Final Summary**
+Provide a comprehensive summary including:
+- **What was implemented**: List of features/fixes with file locations
+- **What changed**: Modified files and their purposes
+- **How to test**: Step-by-step testing instructions
+- **Breaking changes**: Any changes that affect existing functionality
+- **Dependencies**: New packages or services added
+- **Migration steps**: Database or configuration changes needed
+
+## 🔍 Quality Gates
+
+Before marking implementation complete, verify:
+- [ ] No TypeScript errors
+- [ ] No linting errors
+- [ ] Documentation is updated
+- [ ] Environment variables are documented
+
+## 🚀 Quick Command Reference
+
+```bash
+# Run all checks
+bun run lint && bun run typecheck
+```

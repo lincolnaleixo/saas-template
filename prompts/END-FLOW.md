@@ -56,9 +56,4 @@ Before marking implementation complete, verify:
 - [ ] Documentation is updated
 - [ ] Environment variables are documented
 
-## 🚀 Quick Command Reference
-
-```bash
-# Run all checks
-bun run lint && bun run typecheck
-```
+Attention! Strictly return the final summary and the each quality gate

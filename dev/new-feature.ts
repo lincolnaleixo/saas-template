@@ -17,6 +17,112 @@ async function collectAndEnhanceFeatures(): Promise<string[]> {
   
   console.log("🚀 New Feature Request Tool");
   console.log("===========================");
+  console.log("Choose input mode:");
+  console.log("1. Single comprehensive feature (for complex, multi-part features)");
+  console.log("2. Multiple separate features (enter one by one)\n");
+  
+  const mode = prompt("Select mode (1 or 2, default: 2): ") || "2";
+  const isSingleMode = mode === "1";
+  
+  if (isSingleMode) {
+    console.log("\n📝 Single Feature Mode");
+    console.log("Enter your complete feature description (can be multi-line).");
+    console.log("Type 'END' on a new line when finished:\n");
+    
+    let featureLines: string[] = [];
+    while (true) {
+      const line = prompt("") || "";
+      if (line.toUpperCase() === "END") {
+        break;
+      }
+      featureLines.push(line);
+    }
+    
+    const feature = featureLines.join("\n").trim();
+    
+    if (feature === "") {
+      console.log("\n❌ No feature entered. Exiting.");
+      process.exit(0);
+    }
+    
+    // For single mode, we'll treat the entire input as one feature
+    const trimmedFeature = feature;
+    
+    // Try to enhance with AI if API key is available
+    if (CEREBRAS_API_KEY) {
+      console.log("\n🤖 Enhancing comprehensive feature with AI...");
+      
+      try {
+        const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${CEREBRAS_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b",
+            stream: false,
+            max_tokens: 1000, // Increased for comprehensive features
+            temperature: 0.3,
+            top_p: 0.95,
+            messages: [
+              {
+                role: "system",
+                content: "You are a prompt enhancer for comprehensive feature requests. Take the user's feature description and make it clearer and more actionable for an AI coder. Preserve all the specific requirements but organize them better. For multi-part features, keep them as a single cohesive request. Be clear and explicit. Return only the enhanced prompt text."
+              },
+              {
+                role: "user",
+                content: `The user wants to implement this comprehensive feature:\n\n"${trimmedFeature}"\n\nEnhance this request by:\n1. Making any vague requirements more specific\n2. Ensuring all parts are clearly stated\n3. Maintaining it as a single cohesive feature request\n4. Adding any implied requirements that might be missing\n\nReturn only the enhanced version.`
+              }
+            ]
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const enhancedFeature = data.choices[0].message.content.trim();
+        
+        // Check if enhancement is actually different
+        if (enhancedFeature === trimmedFeature) {
+          console.log(`\n⚠️  AI returned the same text - no enhancement made`);
+          features.push(trimmedFeature);
+          console.log(`✓ Added: "${trimmedFeature}"\n`);
+        } else {
+          // Show both versions when AI provides an enhancement
+          console.log(`\n📝 Feature Enhancement:`);
+          console.log(`  Original: ${trimmedFeature}`);
+          console.log(`  Enhanced: ${enhancedFeature}`);
+          
+          const choice = prompt("\nUse enhanced version? (y/n, default: y): ") || "y";
+          
+          if (choice.toLowerCase() === 'y') {
+            features.push(enhancedFeature);
+            console.log(`✓ Added enhanced version\n`);
+          } else {
+            features.push(trimmedFeature);
+            console.log(`✓ Added original version\n`);
+          }
+        }
+        
+      } catch (error) {
+        console.log(`⚠️  AI enhancement failed: ${error.message}`);
+        features.push(trimmedFeature);
+        console.log(`✓ Added: "${trimmedFeature}"\n`);
+      }
+    } else {
+      // No API key, just add the feature
+      features.push(trimmedFeature);
+      console.log(`✓ Added: "${trimmedFeature}"\n`);
+    }
+    
+    return features;
+  }
+  
+  // Multiple features mode (original behavior)
+  console.log("\n📋 Multiple Features Mode");
   console.log("Enter features one by one. Press Enter on empty line to submit.\n");
   
   while (true) {
@@ -153,8 +259,14 @@ async function loadDocumentation(): Promise<string> {
 
 function formatFeaturesAsTodos(features: string[]): string {
   const todoList = features.map((feature, index) => {
+    const lines = feature.split('\n');
+    if (lines.length > 1) {
+      // For multi-line features, indent subsequent lines
+      const formattedFeature = lines[0] + '\n' + lines.slice(1).map(line => `   ${line}`).join('\n');
+      return `${index + 1}. ${formattedFeature}`;
+    }
     return `${index + 1}. ${feature}`;
-  }).join("\n");
+  }).join("\n\n");
   
   let returnPrompt = `---- \n\nNow, pay attention!`;
   returnPrompt += ` Those are the new features to implement as a structured todo list:\n`
@@ -452,7 +564,15 @@ async function main() {
     
     console.log("\n📋 Final features to implement:");
     features.forEach((feature, index) => {
-      console.log(`  ${index + 1}. ${feature}`);
+      const lines = feature.split('\n');
+      if (lines.length > 1) {
+        console.log(`  ${index + 1}. [Multi-line feature]`);
+        lines.forEach(line => {
+          console.log(`     ${line}`);
+        });
+      } else {
+        console.log(`  ${index + 1}. ${feature}`);
+      }
     });
     
     // Check if Opus is available

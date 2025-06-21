@@ -1,86 +1,53 @@
-#!/usr/bin/env bash
-#
-# Development Environment Startup Script
-# =====================================
-# 
-# This script starts all services needed for local development using Docker Compose.
-# It loads configuration from .env.local and provides hot-reload for all services.
-#
-# Usage:
-#   ./scripts/dev.sh
-#
-# Configuration:
-#   All settings are loaded from .env.local
-#   See .env.example for available options
-#
-# Services started:
-#   - frontend (Next.js with hot reload)
-#   - api (Backend API with hot reload)
-#   - scheduler (Background jobs)
-#   - db (PostgreSQL database)
-#   - redis (Cache and job queue)
-#
+#!/bin/bash
+# Development startup script for SaaS Admin Dashboard
 
-set -euo pipefail
+set -e
 
-# Load environment variables from .env.local
-# This file should never be committed to git
+echo "🚀 Starting SaaS Admin Dashboard in development mode..."
+
+# Load environment variables
 if [ -f .env.local ]; then
-    # Use a more robust method to export environment variables
-    set -a  # automatically export all variables
-    source .env.local
-    set +a  # turn off automatic export
-    echo "✓ Loaded configuration from .env.local"
+    export $(cat .env.local | grep -v '^#' | xargs)
 else
-    echo "⚠️  Warning: .env.local not found, using default values"
-    echo "   Copy .env.example to .env.local and configure it"
+    echo "⚠️  .env.local not found. Creating from .env.example..."
+    cp .env.example .env.local
+    echo "📝 Please update .env.local with your configuration"
 fi
 
-# Configuration with defaults
-# These can be overridden in .env.local
-PROJECT_NAME="${PROJECT_NAME:-myapp}"              # Used for container naming
-COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}" # Docker compose file to use
-COMPOSE_PATH="${COMPOSE_PATH:-./infra}"           # Path to infrastructure files
+# Ensure required directories exist
+mkdir -p logger uploads migrations/drizzle migrations/rollback migrations/seeds
 
-# Enable Docker Compose Bake for better performance
-export COMPOSE_BAKE=true
+# Start services with development configuration
+echo "🐳 Starting Docker services..."
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
-# Services to start in development
-# You can customize this list in .env.local with DEV_SERVICES variable
-SERVICES="${DEV_SERVICES:-frontend scheduler db redis}"
+# Wait for database to be ready
+echo "⏳ Waiting for database..."
+sleep 5
 
-# Colors for output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+# Run migrations
+echo "📊 Running database migrations..."
+docker-compose exec -T api bun run scripts/migrate.ts
 
-echo -e "${BLUE}=� Starting ${PROJECT_NAME} development environment...${NC}"
-echo -e "   Services: ${SERVICES}"
-echo -e "   Compose file: ${COMPOSE_PATH}/${COMPOSE_FILE}"
+# Seed database (only if empty)
+echo "🌱 Seeding database..."
+docker-compose exec -T api bun run migrations/seeds/001_initial_data.ts || true
 
-# Ensure compose file exists
-if [ ! -f "${COMPOSE_PATH}/${COMPOSE_FILE}" ]; then
-    echo -e "${YELLOW}�  Compose file not found at ${COMPOSE_PATH}/${COMPOSE_FILE}${NC}"
-    exit 1
-fi
-
-# Start services
-echo -e "\n${BLUE}= Starting containers...${NC}"
-docker compose -f "${COMPOSE_PATH}/${COMPOSE_FILE}" up -d ${SERVICES}
-
-# Wait for services to be ready
-echo -e "\n${BLUE}� Waiting for services to be ready...${NC}"
-sleep 3
-
-# Show running containers
-echo -e "\n${GREEN} Development environment is running!${NC}"
-docker compose -f "${COMPOSE_PATH}/${COMPOSE_FILE}" ps
-
-# Show access URLs
-echo -e "\n${BLUE}🚀 Application available at:${NC} http://localhost:3000"
-echo -e "${BLUE}📚 API Documentation:${NC} http://localhost:3000/api-docs"
-
-# Tail logs
-echo -e "\n${BLUE}=� Tailing logs for active services...${NC}"
-docker compose -f "${COMPOSE_PATH}/${COMPOSE_FILE}" logs -f ${SERVICES}
+echo "✅ Development environment ready!"
+echo ""
+echo "📚 Access points:"
+echo "   Admin Dashboard: http://localhost:${API_PORT:-8000}"
+echo "   API:            http://localhost:${API_PORT:-8000}/api"
+echo "   API Docs:       http://localhost:${API_PORT:-8000}/api-docs"
+echo "   pgAdmin:        http://localhost:${PGADMIN_PORT:-5050}"
+echo "   Redis Insight:  http://localhost:${REDIS_INSIGHT_PORT:-8001}"
+echo "   MailDev:        http://localhost:${MAILDEV_PORT:-1080}"
+echo ""
+echo "🔑 Default admin credentials:"
+echo "   Email:    admin@example.com"
+echo "   Password: admin123"
+echo ""
+echo "📋 Useful commands:"
+echo "   View logs:    docker-compose logs -f api"
+echo "   Stop:         docker-compose down"
+echo "   Reset DB:     docker-compose down -v"

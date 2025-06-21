@@ -7,10 +7,10 @@
 
 Para o claude code:
 
-- Criar o template de CSS, pedir para ser igual ao shadcn ou outro elements, pegar um printscript
-- pedir para criar os arquivos e folders de backend baseado no guidelines
-- pedir para criar os arquivos e folders de worker baseado no guidelines
-- pedir para criar os arquivos e folders de frontend baseado no guidelines
+
+
+
+
 - Implementar login com google
 - Criar 3 jobs baseado no worker
 - criar um landing page legal

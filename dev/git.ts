@@ -289,9 +289,14 @@ async function createNewBranch(gitSummary: string): Promise<string> {
  *    - Automatically rotates old backups
  *    - Essential for data recovery
  * 
+ * 2. generate-migrations.ts - Generates Drizzle migrations from schema changes
+ *    - Compares current schema with database
+ *    - Creates timestamped migration files
+ *    - Validates SQL before committing
+ * 
  * Other available scripts (not run automatically):
- * - check-migrations.ts - Validates database migrations
- * - validate-schema.ts - Validates Drizzle schemas
+ * - migrate.ts - Applies pending migrations to database
+ * - rollback.ts - Rolls back last migration
  * 
  * Scripts are optional but backups are highly recommended
  * If a script fails, user is prompted to continue or abort
@@ -299,8 +304,9 @@ async function createNewBranch(gitSummary: string): Promise<string> {
 async function executePreCommitScripts(): Promise<void> {
   console.log('\n📋 Running pre-commit scripts...\n');
 
-  // The scripts should be in the same directory as git.ts
-  const scriptsDir = __dirname;
+  // The scripts should be in the scripts directory at project root
+  const projectRoot = path.resolve(__dirname, '..');
+  const scriptsDir = path.join(projectRoot, 'scripts');
 
   console.log(`📍 git.ts is running from: ${__filename}`);
   console.log(`📁 Looking for pre-commit scripts in: ${scriptsDir}`);
@@ -315,8 +321,10 @@ async function executePreCommitScripts(): Promise<void> {
 
   // Define scripts to run - check for multiple possible names
   const backupScriptNames = ['backup-sql.sh', 'backup-db.sh', 'backup.sh'];
+  const migrationScriptNames = ['generate-migrations.ts', 'gen-migrations.ts'];
 
   let backupScript = null;
+  let migrationScript = null;
 
   // Find backup script
   for (const scriptName of backupScriptNames) {
@@ -328,21 +336,95 @@ async function executePreCommitScripts(): Promise<void> {
     }
   }
 
+  // Find migration script
+  for (const scriptName of migrationScriptNames) {
+    const scriptPath = path.join(scriptsDir, scriptName);
+    if (fs.existsSync(scriptPath)) {
+      migrationScript = scriptPath;
+      console.log(`✅ Found migration script: ${scriptName}`);
+      break;
+    }
+  }
+
+  // Run migration generation if Drizzle is configured
+  if (migrationScript || (fs.existsSync('./drizzle.config.ts') && fs.existsSync('./backend/models'))) {
+    console.log(`\n🔄 Checking for database schema changes...`);
+    try {
+      // Check if there are schema changes that need migrations
+      const drizzleCheck = await executeCommand('bun drizzle-kit check || echo "no-drizzle"').catch(() => 'no-drizzle');
+      
+      if (drizzleCheck.includes('no-drizzle')) {
+        console.log('⚠️  Drizzle Kit not installed, skipping migration check');
+      } else if (drizzleCheck.includes('No schema changes')) {
+        console.log('✅ No database schema changes detected');
+      } else {
+        console.log('📝 Database schema changes detected!');
+        const generateAnswer = await askQuestion('Generate migration for these changes? (y/n): ');
+        
+        if (generateAnswer.toLowerCase() === 'y') {
+          console.log('🔨 Generating migration...');
+          
+          // Generate migration with descriptive name
+          const migrationName = await askQuestion('Enter migration description (e.g. "add user roles"): ');
+          const sanitizedName = migrationName.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+          
+          await executeCommand(`bun drizzle-kit generate:pg --name=${sanitizedName}`);
+          console.log('✅ Migration generated successfully');
+          
+          // Show the generated migration file
+          const latestMigration = await executeCommand('ls -1 ./migrations/drizzle/*.sql | tail -1');
+          if (latestMigration) {
+            console.log(`📄 Generated: ${latestMigration}`);
+            
+            // Optionally create rollback script
+            const createRollback = await askQuestion('Create rollback script for this migration? (y/n): ');
+            if (createRollback.toLowerCase() === 'y') {
+              const migrationFile = path.basename(latestMigration);
+              const rollbackPath = `./migrations/rollback/${migrationFile}`;
+              
+              // Create rollback directory if it doesn't exist
+              await executeCommand('mkdir -p ./migrations/rollback');
+              
+              // Copy migration as starting point for rollback
+              await executeCommand(`cp ${latestMigration} ${rollbackPath}`);
+              console.log(`✅ Rollback template created: ${rollbackPath}`);
+              console.log('   ⚠️  Remember to edit the rollback script to reverse the migration!');
+            }
+          }
+        }
+      }
+    } catch (e: any) {
+      console.log(`⚠️  Migration check failed: ${e.message}`);
+      // Continue anyway - not critical for commits
+    }
+  }
 
   // Run backup script if found
   if (backupScript) {
-    console.log(`\n🔄 Running ${path.basename(backupScript)}...`);
-    try {
-      // Make sure the script is executable
-      await executeCommand(`chmod +x ${backupScript}`);
-      const backupResult = await executeCommand(backupScript);
-      console.log('✅ Backup completed successfully');
-      if (backupResult) console.log(backupResult);
-    } catch (e: any) {
-      console.log(`⚠️  Backup script failed: ${e.message}`);
-      const continueAnswer = await askQuestion('Continue without backup? (y/n): ');
-      if (continueAnswer.toLowerCase() !== 'y') {
-        throw new Error('Process aborted by user');
+    // Check if we should skip backup (e.g., for template projects without DB)
+    const skipBackup = process.env.SKIP_DB_BACKUP === 'true';
+    
+    if (skipBackup) {
+      console.log(`\n⏭️  Skipping database backup (SKIP_DB_BACKUP=true)`);
+    } else {
+      console.log(`\n🔄 Running ${path.basename(backupScript)}...`);
+      console.log('   (Set SKIP_DB_BACKUP=true in .env.local to skip)');
+      
+      try {
+        // Make sure the script is executable
+        await executeCommand(`chmod +x ${backupScript}`);
+        const backupResult = await executeCommand(backupScript);
+        console.log('✅ Backup completed successfully');
+        if (backupResult) console.log(backupResult);
+      } catch (e: any) {
+        // Check if it's a database connection issue
+        if (e.stdout && (e.stdout.includes('container') || e.stdout.includes('not running'))) {
+          console.log('⚠️  Database container is not running - skipping backup');
+          console.log('   (Run "./scripts/dev.sh" to start the database if needed)');
+        } else {
+          console.log(`⚠️  Backup script failed: ${e.message}`);
+        }
+        console.log('   Continuing with other tasks...');
       }
     }
   } else {
@@ -361,6 +443,22 @@ async function executePreCommitScripts(): Promise<void> {
     }
 
     console.log('   Continuing without backup...');
+  }
+
+  // Additional check for pending migrations before commit
+  if (fs.existsSync('./migrations/drizzle')) {
+    try {
+      const pendingMigrations = await executeCommand(`
+        find ./migrations/drizzle -name "*.sql" -type f | wc -l
+      `).then(count => parseInt(count.trim()));
+      
+      if (pendingMigrations > 0) {
+        console.log(`\n⚠️  Note: You have ${pendingMigrations} migration file(s) ready to deploy`);
+        console.log('   These will be applied during the next production deployment.');
+      }
+    } catch (e) {
+      // Non-critical, continue
+    }
   }
 
 
@@ -531,14 +629,47 @@ async function handleGitOperations(): Promise<void> {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 6) Entrypoint                                                              */
+/* 6) Export function for programmatic use                                    */
 /* -------------------------------------------------------------------------- */
 
-(async () => {
+export async function runGitCommit(): Promise<{ success: boolean; message: string; branch?: string }> {
   try {
+    // Capture the current branch before operations
+    const initialBranch = await executeCommand('git rev-parse --abbrev-ref HEAD');
+    
+    // Check if there are changes to commit
+    const status = await executeCommand('git status --porcelain');
+    if (!status) {
+      return { success: true, message: 'No changes to commit' };
+    }
+    
     await handleGitOperations();
+    
+    // Get the final branch name (might be different if a new branch was created)
+    const finalBranch = await executeCommand('git rev-parse --abbrev-ref HEAD');
+    
+    return { 
+      success: true, 
+      message: 'Git operations completed successfully',
+      branch: finalBranch !== initialBranch ? finalBranch : undefined
+    };
   } catch (e: any) {
-    console.log(`\n❌ Process failed: ${e.message}`);
-    process.exit(1);
+    return { success: false, message: e.message };
   }
-})();
+}
+
+/* -------------------------------------------------------------------------- */
+/* 7) Entrypoint - Only run if called directly                               */
+/* -------------------------------------------------------------------------- */
+
+// Check if this file is being run directly (not imported)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    try {
+      await handleGitOperations();
+    } catch (e: any) {
+      console.log(`\n❌ Process failed: ${e.message}`);
+      process.exit(1);
+    }
+  })();
+}

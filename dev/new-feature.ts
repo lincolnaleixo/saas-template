@@ -367,8 +367,17 @@ async function updateHistory(sessionSummary: any): Promise<void> {
     // Read existing content
     const existingContent = await readFile(historyPath, "utf-8");
     
-    // Prepend new session (latest on top)
-    const newContent = markdownSummary + existingContent;
+    // Check if file has the header
+    const header = `# 📜 Feature Implementation History\n\n`;
+    let contentWithoutHeader = existingContent;
+    
+    if (existingContent.startsWith(header)) {
+      // Remove header from existing content
+      contentWithoutHeader = existingContent.substring(header.length);
+    }
+    
+    // Add new session after header but before existing sessions
+    const newContent = header + markdownSummary + contentWithoutHeader;
     await writeFile(historyPath, newContent);
   } else {
     // Create new history file with header

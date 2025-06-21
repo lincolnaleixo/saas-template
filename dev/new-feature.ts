@@ -327,24 +327,46 @@ async function generateMarkdownSummary(sessionSummary: any): Promise<string> {
   if (responses.endWorkflow && responses.endWorkflow.result) {
     const endResult = responses.endWorkflow.result;
     
+    // First show the raw result summary
+    markdown += `**Result:** ${endResult.split('\n')[0]}\n\n`;
+    
     // Try to extract the Final Summary section
     const summaryMatch = endResult.match(/### 7\. \*\*Final Summary\*\*[\s\S]*?(?=##|$)/);
-    if (summaryMatch) {
+    const summaryAltMatch = endResult.match(/## 🎯 Implementation Summary[\s\S]*?(?=##|$)/);
+    const finalSummaryMatch = endResult.match(/### What was implemented[\s\S]*?(?=##|$)/);
+    
+    if (summaryMatch || summaryAltMatch || finalSummaryMatch) {
       markdown += `**Implementation Details:**\n`;
-      const details = summaryMatch[0].replace(/### 7\. \*\*Final Summary\*\*/, '').trim();
+      const match = summaryMatch || summaryAltMatch || finalSummaryMatch;
+      const details = match[0].replace(/### 7\. \*\*Final Summary\*\*|## 🎯 Implementation Summary/, '').trim();
       markdown += details.split('\n').map(line => '  ' + line).join('\n');
       markdown += `\n\n`;
     }
     
-    // Try to extract quality gates status
+    // Try to extract quality gates status - look for multiple patterns
     const qualityMatch = endResult.match(/## 🔍 Quality Gates Status[\s\S]*?(?=##|The implementation|$)/);
-    if (qualityMatch) {
+    const qualityAltMatch = endResult.match(/Quality Gates:[\s\S]*?(?=##|$)/);
+    const checksMatch = endResult.match(/- \[.\] (No TypeScript errors|No linting errors|Documentation is updated|Environment variables are documented)[\s\S]*?(?=\n\n|$)/g);
+    
+    if (qualityMatch || qualityAltMatch || checksMatch) {
       markdown += `**Quality Gates:**\n`;
-      const quality = qualityMatch[0].replace(/## 🔍 Quality Gates Status/, '').trim();
-      markdown += quality.split('\n').map(line => '  ' + line).join('\n');
+      if (qualityMatch) {
+        const quality = qualityMatch[0].replace(/## 🔍 Quality Gates Status/, '').trim();
+        markdown += quality.split('\n').map(line => '  ' + line).join('\n');
+      } else if (checksMatch) {
+        markdown += checksMatch.map(check => '  ' + check.trim()).join('\n');
+      } else if (qualityAltMatch) {
+        const quality = qualityAltMatch[0].trim();
+        markdown += quality.split('\n').map(line => '  ' + line).join('\n');
+      }
       markdown += `\n\n`;
     } else {
-      markdown += `**Quality Gates:** ⚠️ No quality gates verification captured\n\n`;
+      // If no quality gates found, show a snippet of the response
+      markdown += `**Quality Gates:** ⚠️ No structured quality gates found\n`;
+      markdown += `**Raw Response Preview:**\n`;
+      const preview = endResult.substring(0, 500).split('\n').slice(0, 5).join('\n');
+      markdown += preview.split('\n').map(line => '  ' + line).join('\n');
+      markdown += `\n  ...(see full response in raw output)\n\n`;
     }
   } else {
     markdown += `**Status:** ⚠️ Post-implementation verification not completed or captured\n\n`;
@@ -482,10 +504,14 @@ async function main() {
     
     const endFlowContent = await loadFollowUpCommands();
     
-    // Remove the problematic ---- prefix
+    // Create a more specific prompt for quality gates
     let endWorkflowPrompt = 'Now that the features are implemented, please execute the following post-implementation checklist:\n\n';
     endWorkflowPrompt += endFlowContent;
-    endWorkflowPrompt += '\n\nPlease go through each checklist item in order and ensure all quality gates are met.';
+    endWorkflowPrompt += '\n\n**IMPORTANT**: You MUST complete ALL checklist items, especially:\n';
+    endWorkflowPrompt += '1. Run any applicable linting/type checking commands\n';
+    endWorkflowPrompt += '2. Provide the Final Summary (item #7) with implementation details\n';
+    endWorkflowPrompt += '3. Report the Quality Gates status at the end\n\n';
+    endWorkflowPrompt += 'Even if some checks are not applicable (e.g., no TypeScript in an HTML-only change), explicitly state this in your quality gates summary.';
     
     sessionData.prompts.endWorkflow = endWorkflowPrompt;
     

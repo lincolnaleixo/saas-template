@@ -307,47 +307,59 @@ async function generateMarkdownSummary(sessionSummary: any): Promise<string> {
   markdown += `**Date:** ${new Date(timestamp).toLocaleString()}\n\n`;
   
   // Features requested
-  markdown += `### 📋 Features Implemented\n\n`;
+  markdown += `### 📋 Features Requested\n\n`;
   features.forEach((feature: string, index: number) => {
     markdown += `${index + 1}. ${feature}\n`;
   });
   markdown += `\n`;
   
-  // Implementation result
+  // Phase 1: Implementation
+  markdown += `### 🛠️ Phase 1: Implementation\n\n`;
   if (responses.featureImplementation) {
-    markdown += `### ✅ Implementation Result\n\n`;
-    markdown += `${responses.featureImplementation.result}\n\n`;
+    markdown += `**Result:** ${responses.featureImplementation.result}\n\n`;
+  } else {
+    markdown += `**Result:** No implementation response captured\n\n`;
   }
   
-  // Extract final summary from end workflow response
+  // Phase 2: Post-Implementation Verification
+  markdown += `### 🔍 Phase 2: Post-Implementation Verification\n\n`;
+  
   if (responses.endWorkflow && responses.endWorkflow.result) {
     const endResult = responses.endWorkflow.result;
     
     // Try to extract the Final Summary section
     const summaryMatch = endResult.match(/### 7\. \*\*Final Summary\*\*[\s\S]*?(?=##|$)/);
     if (summaryMatch) {
-      markdown += `### 📝 Implementation Details\n`;
-      markdown += summaryMatch[0].replace(/### 7\. \*\*Final Summary\*\*/, '');
-      markdown += `\n`;
+      markdown += `**Implementation Details:**\n`;
+      const details = summaryMatch[0].replace(/### 7\. \*\*Final Summary\*\*/, '').trim();
+      markdown += details.split('\n').map(line => '  ' + line).join('\n');
+      markdown += `\n\n`;
     }
     
     // Try to extract quality gates status
     const qualityMatch = endResult.match(/## 🔍 Quality Gates Status[\s\S]*?(?=##|The implementation|$)/);
     if (qualityMatch) {
-      markdown += `### ✓ Quality Gates Status\n`;
-      markdown += qualityMatch[0].replace(/## 🔍 Quality Gates Status/, '');
-      markdown += `\n`;
+      markdown += `**Quality Gates:**\n`;
+      const quality = qualityMatch[0].replace(/## 🔍 Quality Gates Status/, '').trim();
+      markdown += quality.split('\n').map(line => '  ' + line).join('\n');
+      markdown += `\n\n`;
+    } else {
+      markdown += `**Quality Gates:** ⚠️ No quality gates verification captured\n\n`;
     }
+  } else {
+    markdown += `**Status:** ⚠️ Post-implementation verification not completed or captured\n\n`;
   }
   
   // Git result
+  markdown += `### 📦 Phase 3: Git Commit\n\n`;
   if (gitResult) {
-    markdown += `### 🔧 Git Status\n\n`;
     markdown += gitResult.success ? `✅ ${gitResult.message}` : `❌ ${gitResult.message}`;
     if (gitResult.branch) {
       markdown += `\n📌 Branch: ${gitResult.branch}`;
     }
     markdown += `\n\n`;
+  } else {
+    markdown += `⚠️ No git commit attempted\n\n`;
   }
   
   markdown += `---\n\n`;

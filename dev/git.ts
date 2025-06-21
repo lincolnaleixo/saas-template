@@ -417,20 +417,14 @@ async function executePreCommitScripts(): Promise<void> {
         console.log('✅ Backup completed successfully');
         if (backupResult) console.log(backupResult);
       } catch (e: any) {
-        console.log(`⚠️  Backup script failed: ${e.message}`);
-        
         // Check if it's a database connection issue
         if (e.stdout && (e.stdout.includes('container') || e.stdout.includes('not running'))) {
-          console.log('   📦 Database container is not running.');
-          console.log('   💡 Tips:');
-          console.log('      - Run "./scripts/dev.sh" to start the development environment');
-          console.log('      - Or set SKIP_DB_BACKUP=true in .env.local to skip backups');
+          console.log('⚠️  Database container is not running - skipping backup');
+          console.log('   (Run "./scripts/dev.sh" to start the database if needed)');
+        } else {
+          console.log(`⚠️  Backup script failed: ${e.message}`);
         }
-        
-        const continueAnswer = await askQuestion('Continue without backup? (y/n): ');
-        if (continueAnswer.toLowerCase() !== 'y') {
-          throw new Error('Process aborted by user');
-        }
+        console.log('   Continuing with other tasks...');
       }
     }
   } else {

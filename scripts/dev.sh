@@ -7,7 +7,7 @@ echo "🚀 Starting SaaS Admin Dashboard in development mode..."
 
 # Load environment variables
 if [ -f .env.local ]; then
-    export $(cat .env.local | grep -v '^#' | xargs)
+    export $(cat .env.local | grep -v '^#' | sed 's/#.*//' | grep -v '^$' | xargs)
 else
     echo "⚠️  .env.local not found. Creating from .env.example..."
     cp .env.example .env.local

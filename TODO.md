@@ -1,18 +1,3 @@
-- is it possible to have streaming being updated from claude live in this part? like updating the terminal?
-⏳ Claude is working...
-
-now we just get this and we dont see any update live, only when it finishses
-⏳ Claude is working...
-
-✅ Completed in 16 turns
-
-📝 Claude Response:
-Task completed! I've successfully replaced all text content in the index.html file with 'hey you' while preserving the HTML comment structure.
-
-💾 Full response saved to /Users/robot/Downloads/template/dev/output/raw/2025-06-21T09-39-43-040Z-initial.json
-
-------
-
 - precisa fix isso
 📋 Running pre-commit scripts...
 

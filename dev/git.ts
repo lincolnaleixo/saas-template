@@ -304,8 +304,9 @@ async function createNewBranch(gitSummary: string): Promise<string> {
 async function executePreCommitScripts(): Promise<void> {
   console.log('\n📋 Running pre-commit scripts...\n');
 
-  // The scripts should be in the same directory as git.ts
-  const scriptsDir = __dirname;
+  // The scripts should be in the scripts directory at project root
+  const projectRoot = path.resolve(__dirname, '..');
+  const scriptsDir = path.join(projectRoot, 'scripts');
 
   console.log(`📍 git.ts is running from: ${__filename}`);
   console.log(`📁 Looking for pre-commit scripts in: ${scriptsDir}`);
@@ -400,18 +401,36 @@ async function executePreCommitScripts(): Promise<void> {
 
   // Run backup script if found
   if (backupScript) {
-    console.log(`\n🔄 Running ${path.basename(backupScript)}...`);
-    try {
-      // Make sure the script is executable
-      await executeCommand(`chmod +x ${backupScript}`);
-      const backupResult = await executeCommand(backupScript);
-      console.log('✅ Backup completed successfully');
-      if (backupResult) console.log(backupResult);
-    } catch (e: any) {
-      console.log(`⚠️  Backup script failed: ${e.message}`);
-      const continueAnswer = await askQuestion('Continue without backup? (y/n): ');
-      if (continueAnswer.toLowerCase() !== 'y') {
-        throw new Error('Process aborted by user');
+    // Check if we should skip backup (e.g., for template projects without DB)
+    const skipBackup = process.env.SKIP_DB_BACKUP === 'true';
+    
+    if (skipBackup) {
+      console.log(`\n⏭️  Skipping database backup (SKIP_DB_BACKUP=true)`);
+    } else {
+      console.log(`\n🔄 Running ${path.basename(backupScript)}...`);
+      console.log('   (Set SKIP_DB_BACKUP=true in .env.local to skip)');
+      
+      try {
+        // Make sure the script is executable
+        await executeCommand(`chmod +x ${backupScript}`);
+        const backupResult = await executeCommand(backupScript);
+        console.log('✅ Backup completed successfully');
+        if (backupResult) console.log(backupResult);
+      } catch (e: any) {
+        console.log(`⚠️  Backup script failed: ${e.message}`);
+        
+        // Check if it's a database connection issue
+        if (e.stdout && (e.stdout.includes('container') || e.stdout.includes('not running'))) {
+          console.log('   📦 Database container is not running.');
+          console.log('   💡 Tips:');
+          console.log('      - Run "./scripts/dev.sh" to start the development environment');
+          console.log('      - Or set SKIP_DB_BACKUP=true in .env.local to skip backups');
+        }
+        
+        const continueAnswer = await askQuestion('Continue without backup? (y/n): ');
+        if (continueAnswer.toLowerCase() !== 'y') {
+          throw new Error('Process aborted by user');
+        }
       }
     }
   } else {

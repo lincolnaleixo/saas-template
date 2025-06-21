@@ -119,7 +119,8 @@ async function loadDocumentation(): Promise<string> {
     "GENERAL-GUIDELINES.md", 
     "BACKEND-GUIDELINES.md", 
     "FRONTEND-GUIDELINES.md",
-    "NEW FEATURES.md"
+    "NEW FEATURES.md",
+    "LOGGER.md",
   ];
   const documents: string[] = [];
   

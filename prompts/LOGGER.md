@@ -2,6 +2,26 @@
 
 This project includes a custom, lightweight logging library designed for both backend and frontend use. The logger provides a consistent API across environments while adapting to platform-specific capabilities.
 
+## IMPORTANT: Mandatory Logger Usage
+
+**ALL console.log, console.error, console.warn, and console.debug statements MUST be replaced with the appropriate logger methods.** This is a strict requirement for all code in this project to ensure:
+- Consistent logging format across the codebase
+- Proper log persistence in files and localStorage
+- Better debugging capabilities with contextual information
+- Centralized log management and monitoring
+
+### Migration Requirements
+- ❌ NEVER use `console.log()`, `console.error()`, `console.warn()`, or `console.debug()`
+- ✅ ALWAYS use `logger.info()`, `logger.error()`, `logger.warn()`, or `logger.debug()`
+- ✅ ALWAYS import and use the logger in every module that needs logging
+- ✅ ALWAYS include relevant context when logging
+
+### Initial Setup
+1. Ensure the `./logger` directory exists (it will be created automatically)
+2. Set `LOG_TO_FILE=true` in your `.env` file
+3. Logs will be saved as `./logger/app-YYYY-MM-DD.log`
+4. All logs will also appear in the terminal with colors and formatting
+
 ## Features
 
 - **Unified API**: Same logging interface for both backend and frontend
@@ -21,9 +41,13 @@ This project includes a custom, lightweight logging library designed for both ba
 ```typescript
 import { logger, createLogger } from '@/backend/lib/logger';
 
+// IMPORTANT: With LOG_TO_FILE=true, all logs appear in:
+// - Terminal (with colors and emojis)
+// - ./logger/app-YYYY-MM-DD.log files
+
 // Use the default logger
-logger.info('Application started');
-logger.error('Something went wrong', { userId: 123 });
+logger.info('Application started'); // Shows in terminal + saved to file
+logger.error('Something went wrong', { userId: 123 }); // Red in terminal + file
 
 // Create a scoped logger
 const authLogger = createLogger({ 
@@ -41,7 +65,7 @@ sessionLogger.debug('Session created');
 try {
   someRiskyOperation();
 } catch (error) {
-  logger.error('Operation failed', error);
+  logger.error('Operation failed', error); // Full stack trace in both outputs
 }
 ```
 
@@ -82,16 +106,37 @@ loggerFactory.setLogLevel('debug');
 # Log Level (error, warn, info, debug)
 LOG_LEVEL=info
 
-# File Logging
-LOG_TO_FILE=false                    # Enable file logging
-LOG_DIR=./logs                       # Directory for log files
+# File Logging - RECOMMENDED TO ENABLE IN ALL ENVIRONMENTS
+LOG_TO_FILE=true                     # Enable file logging (SHOULD BE true)
+LOG_DIR=./logger                     # Directory for log files (uses ./logger folder)
 LOG_MAX_SIZE=10485760               # Max log file size in bytes (10MB)
 LOG_MAX_FILES=5                     # Number of log files to keep
 
-# Console Output
-LOG_EMOJIS=true                     # Enable emojis in console logs
+# Console Output - ALWAYS ENABLED
+LOG_EMOJIS=true                     # Enable emojis in console logs (dev)
 LOG_COLORS=true                     # Enable colors in console logs
 ```
+
+### Recommended Backend Configuration
+
+For consistent logging across all environments, use these settings:
+
+```bash
+# .env or .env.local
+LOG_LEVEL=info
+LOG_TO_FILE=true
+LOG_DIR=./logger
+LOG_MAX_SIZE=10485760
+LOG_MAX_FILES=10
+LOG_EMOJIS=true
+LOG_COLORS=true
+```
+
+This ensures:
+- All logs are written to files in the `./logger` directory
+- Logs are displayed in the terminal with colors and formatting
+- Log files are automatically rotated when they reach 10MB
+- The last 10 log files are retained for debugging
 
 ### Frontend Configuration
 
@@ -128,16 +173,19 @@ https://yourapp.com/dashboard?log_level=debug
 
 ### Backend Transports
 
-1. **Console Transport**
+1. **Console Transport** (ALWAYS ENABLED)
    - Pretty formatted with colors and emojis in development
    - JSON formatted in production
-   - Outputs to stdout/stderr
+   - Outputs to stdout/stderr for terminal visibility
+   - Real-time log monitoring in terminal
 
-2. **File Transport**
-   - Rotating log files with date patterns
-   - Automatic size-based rotation
-   - Configurable retention policy
-   - Asynchronous writes with queuing
+2. **File Transport** (SHOULD BE ENABLED)
+   - Writes to `./logger` directory by default
+   - Rotating log files with date patterns (e.g., `app-2024-01-15.log`)
+   - Automatic size-based rotation when files reach configured size
+   - Configurable retention policy (keeps last N files)
+   - Asynchronous writes with queuing for performance
+   - Creates logger directory automatically if it doesn't exist
 
 ### Frontend Transports
 
@@ -250,6 +298,38 @@ monitoringLogger.child = function(context) {
   
   return child;
 };
+```
+
+## Terminal Output
+
+The logger provides rich terminal output with the following features:
+
+### Backend Terminal Output
+- **Colored Output**: Different colors for each log level (red for errors, yellow for warnings, etc.)
+- **Emojis**: Visual indicators for log levels (🚨 ERROR, ⚠️ WARN, ℹ️ INFO, 🐛 DEBUG)
+- **Timestamps**: ISO format timestamps for each log entry
+- **Source Identification**: Shows which module/component generated the log
+- **Structured Context**: Pretty-printed JSON for context objects
+- **Stack Traces**: Full error stack traces for debugging
+
+### Viewing Logs in Terminal
+
+```bash
+# Real-time log monitoring
+tail -f ./logger/app-*.log
+
+# View today's logs with colors
+cat ./logger/app-$(date +%Y-%m-%d).log
+
+# Filter by log level
+grep "ERROR" ./logger/app-*.log
+grep "WARN" ./logger/app-*.log
+
+# Search for specific context
+grep "userId: 123" ./logger/app-*.log
+
+# Monitor specific module logs
+tail -f ./logger/app-*.log | grep "auth"
 ```
 
 ## Best Practices
@@ -416,6 +496,7 @@ export async function createUser(req: Request) {
     path: '/users',
   });
   
+  // This will log to both terminal AND ./logger/app-YYYY-MM-DD.log
   requestLogger.info('Creating user');
   
   try {
@@ -423,6 +504,7 @@ export async function createUser(req: Request) {
     requestLogger.info('User created successfully', { userId: user.id });
     return Response.json(user);
   } catch (error) {
+    // Error logs appear in red in terminal and are saved to file
     requestLogger.error('Failed to create user', error);
     return Response.json({ error: 'Creation failed' }, { status: 500 });
   }

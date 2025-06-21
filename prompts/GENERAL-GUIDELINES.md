@@ -82,6 +82,18 @@ my‑saas/
 
 9. **ALWAYS USE BUN INSIDE DOCKER** - For all operations.
 
+10. **NO CONSOLE LOGGING** - NEVER use console.log, console.error, console.warn, or console.debug:
+    - ❌ WRONG: `console.log('User logged in')`
+    - ❌ WRONG: `console.error('Database error:', error)`
+    - ✅ CORRECT: `logger.info('User logged in', { userId })`
+    - ✅ CORRECT: `logger.error('Database error', error)`
+    
+    Always use the project's logger:
+    - Import logger in every file that needs logging
+    - Use appropriate log levels (error, warn, info, debug)
+    - Include relevant context in log messages
+    - Logs are automatically saved to `./logger` folder and shown in terminal
+
 ## Key Concepts and Best Practices
 
 ### Environment Configuration

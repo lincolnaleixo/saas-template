@@ -228,6 +228,47 @@ const toast = document.querySelector('app-toast');
 toast.show('User created successfully', 'success');
 ```
 
+### Logging Standards
+
+**MANDATORY: Use the project logger for ALL logging needs**
+
+```typescript
+// ❌ NEVER use console methods
+console.log('Component rendered');
+console.error('API error:', error);
+console.warn('Slow network detected');
+console.debug('Form data:', formData);
+
+// ✅ ALWAYS use the logger
+import { logger, createLogger } from '@/frontend/lib/logger';
+
+// Use default logger
+logger.info('Component rendered', { component: 'UserList' });
+logger.error('API request failed', error);
+logger.warn('Slow network detected', { latency: 2000 });
+logger.debug('Form submitted', { fields: Object.keys(formData) });
+
+// Create component-specific logger
+const componentLogger = createLogger({ 
+  source: 'UserProfile',
+  context: { component: 'UserProfile' }
+});
+componentLogger.info('Profile loaded', { userId });
+
+// Logger features for frontend:
+// - Logs appear in browser console with colors and formatting
+// - Logs are stored in localStorage for debugging
+// - Can send logs to backend for monitoring
+// - Set log level with ?log_level=debug in URL
+```
+
+**Frontend Logger Benefits:**
+- Persistent logs in localStorage survive page reloads
+- Debug user issues by retrieving their logs
+- Monitor frontend errors in production
+- Filter logs by component or level
+- Beautiful console output with collapsed objects
+
 ## 🎨 Design System
 
 ### PicoCSS Integration

@@ -454,6 +454,42 @@ worker/                  # Separate worker service
 
 ## 🛠️ Development Standards
 
+### Logging Standards
+
+**MANDATORY: Use the project logger for ALL logging needs**
+
+```typescript
+// ❌ NEVER use console methods
+console.log('Server started');
+console.error('Database error:', error);
+console.warn('Slow query detected');
+console.debug('Request payload:', data);
+
+// ✅ ALWAYS use the logger
+import { logger, createLogger } from '@/backend/lib/logger';
+
+// Use default logger
+logger.info('Server started', { port: 8000, env: process.env.NODE_ENV });
+logger.error('Database connection failed', error);
+logger.warn('Slow query detected', { query: sql, duration: 5000 });
+logger.debug('Request received', { method: req.method, path: req.url });
+
+// Create scoped logger for modules
+const dbLogger = createLogger({ source: 'database' });
+dbLogger.info('Migration completed', { version: '0001' });
+
+// Create child logger with context
+const requestLogger = logger.child({ requestId: crypto.randomUUID() });
+requestLogger.info('Processing request', { userId });
+```
+
+**Logger Configuration:**
+- Set `LOG_TO_FILE=true` in `.env` to enable file logging
+- Logs are saved to `./logger/app-YYYY-MM-DD.log`
+- All logs appear in terminal with colors and formatting
+- Use appropriate log levels: error, warn, info, debug
+- Always include relevant context in log messages
+
 ### API Design Patterns
 
 1. **Controller-Service-Repository Pattern**

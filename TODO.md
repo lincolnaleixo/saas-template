@@ -1,25 +1,3 @@
-✅ COMPLETED - Custom Logger Implementation:
-- Created unified logger library for both backend and frontend
-- Features: colors, emojis, multiple log levels (ERROR, WARN, INFO, DEBUG)
-- Backend: Console + File transports with daily rotation
-- Frontend: Console + localStorage + Remote transports
-- Non-blocking async implementation
-- Full TypeScript support with Bun
-- Comprehensive test suites for both environments
-- Documentation: /docs/LOGGER.md
-
---------
-
-o script depois no final tem que rodar o git.ts
-### 8. **Git Commit**
-- Execute `./dev/git.ts` to:
-  - Create intelligent branch name based on changes
-  - Generate AI-powered commit message
-  - Run pre-commit hooks (backup, migrations)
-  - Push changes to remote repository
-
-
-- criar e testar o new-feature
 - criar e testar o bugfix (Bugfix talvez pensaria hard? Talvez até definir qual modelo usar dependendo?)
 - criar e testar o improvement feature
 - criar e testar o new job
@@ -35,6 +13,8 @@ Para o claude code:
 - pedir para criar os arquivos e folders de frontend baseado no guidelines
 - Implementar login com google
 - Criar 3 jobs baseado no worker
+- criar um landing page legal
+- integrar com google sign in
 
 Para mim
 - Testar dev

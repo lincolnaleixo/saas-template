@@ -1,6 +1,7 @@
-- is it possible to have streaming being updated from claude live in this part?
+- is it possible to have streaming being updated from claude live in this part? like updating the terminal?
 ⏳ Claude is working...
-now we just get this and we dont see any update, only when it finishses
+
+now we just get this and we dont see any update live, only when it finishses
 ⏳ Claude is working...
 
 ✅ Completed in 16 turns

@@ -50,10 +50,11 @@ Provide a comprehensive summary including:
 
 ## 🔍 Quality Gates
 
-Before marking implementation complete, verify:
+- [ ] Code documentation
+- [ ] Environment variables are updated and documented
+- [ ] Scripts and Infrastructure are updated
 - [ ] No TypeScript errors
 - [ ] No linting errors
-- [ ] Documentation is updated
-- [ ] Environment variables are documented
+- [ ] Documentation (README.md and FEATURES.md) is updated
 
 Attention! Strictly return the final summary and the each quality gate

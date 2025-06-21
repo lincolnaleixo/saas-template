@@ -2,7 +2,8 @@
 
 ## Task Requirements
 
-1. Create the necessary docker compose and docker images for the new backend created work. adjust the dev.sh script if needed
+1. Create the necessary docker compose and docker images for the new backend created work. We should have auto reload on the related services
+2. Adjust the dev.sh script if needed
 
 **Follow ALL guidelines from the documentation below strictly.**
 

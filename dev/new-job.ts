@@ -1,6 +1,0 @@
-- sempre os jobs tem que funcionar para todos os usuarios
-- tem que ser performatico
-- tem que respeitar os guidelines
-- tem que capturar errors e ser capaz de lidar com eles e restart 
-- tem que ser capaz de lidar com concorrencia
-- tem que ser capaz de retorna informacoes uteis

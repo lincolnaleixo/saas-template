@@ -223,8 +223,9 @@ async function loadDocumentation(): Promise<string> {
     "GENERAL-GUIDELINES.md", 
     "BACKEND-GUIDELINES.md", 
     "FRONTEND-GUIDELINES.md",
-    "NEW FEATURES.md",
     "LOGGER.md",
+    "MIGRATIONS.md",
+    "INFRA.md",
   ];
   const documents: string[] = [];
   
@@ -232,7 +233,7 @@ async function loadDocumentation(): Promise<string> {
 
   const aboutFile = join(process.cwd(), "docs", "ABOUT.md");
   const content = await readFile(aboutFile, "utf-8");
-  documents.push(`\n\n${content}`);
+  documents.push(`\n${content}`);
 
   console.log("\n📚 Loading project documentation...");
   
@@ -240,7 +241,7 @@ async function loadDocumentation(): Promise<string> {
     const filePath = join(docsDir, file);
     try {
       const content = await readFile(filePath, "utf-8");
-      documents.push(`\n\n${content}`);
+      documents.push(`\n${content}`);
       console.log(`  ✓ Loaded ${file}`);
     } catch (error) {
       console.log(`  ⚠️  Could not load ${file}`);
@@ -255,23 +256,6 @@ async function loadDocumentation(): Promise<string> {
   return documents.join("");
 }
 
-function formatFeaturesAsTodos(features: string[]): string {
-  const todoList = features.map((feature, index) => {
-    const lines = feature.split('\n');
-    if (lines.length > 1) {
-      // For multi-line features, indent subsequent lines
-      const formattedFeature = lines[0] + '\n' + lines.slice(1).map(line => `   ${line}`).join('\n');
-      return `${index + 1}. ${formattedFeature}`;
-    }
-    return `${index + 1}. ${feature}`;
-  }).join("\n\n");
-  
-  let returnPrompt = `---- \n\nNow, pay attention!`;
-  returnPrompt += ` Those are the new features to implement as a structured todo list:\n`
-  returnPrompt += `\n${todoList}`;
-
-  return returnPrompt;
-}
 
 async function savePromptToFile(prompt: string, sessionId: string, promptType: string = "feature-implementation"): Promise<void> {
   console.log("\n📝 Creating prompt file...\n");
@@ -282,8 +266,10 @@ async function savePromptToFile(prompt: string, sessionId: string, promptType: s
     await mkdir(outputDir, { recursive: true });
   }
   
-  // Generate filename with timestamp
-  const filename = `${sessionId}-${promptType}.md`;
+  // Generate filename with datetime format: new-feature-YYYY-MM-DDTHH-MM-SS
+  const now = new Date();
+  const dateTime = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const filename = `new-feature-${dateTime}.md`;
   const filepath = join(outputDir, filename);
   
   // Save prompt to file
@@ -324,13 +310,26 @@ async function main() {
     // Load documentation
     const documentation = await loadDocumentation();
     
-    // Format the complete prompt for features
-    const featuresPrompt = formatFeaturesAsTodos(features);
+    // Format the complete prompt with new structure
+    let featureImplementationPrompt = '# This is a NEW FEATURE implementation request. Follow strictly ALL guidelines from the documentation below:\n\n';
+    featureImplementationPrompt += '## We want to implement those new features below.\n\n';
     
-    let featureImplementationPrompt = 'This is a NEW FEATURE implementation request. ';
-    featureImplementationPrompt += `Follow strictly ALL guidelines from the documentation below:`;
+    // Add features as numbered list
+    features.forEach((feature, index) => {
+      const lines = feature.split('\n');
+      if (lines.length > 1) {
+        // For multi-line features, format properly
+        featureImplementationPrompt += `${index + 1}. ${lines[0]}\n`;
+        lines.slice(1).forEach(line => {
+          featureImplementationPrompt += `   ${line}\n`;
+        });
+      } else {
+        featureImplementationPrompt += `${index + 1}. ${feature}\n`;
+      }
+    });
+    
+    featureImplementationPrompt += '\n## Strictly follow the documentation below\n';
     featureImplementationPrompt += `${documentation}`;
-    featureImplementationPrompt += `${featuresPrompt}`;
     
     // Save prompt file
     await savePromptToFile(featureImplementationPrompt, sessionId, "feature-implementation");

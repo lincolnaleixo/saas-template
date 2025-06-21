@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach, mock, spyOn } from 'bun:test';
+import './setup'; // Import setup before anything else
+import { describe, test, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import { 
   createLogger, 
   LogLevel, 
@@ -8,26 +9,6 @@ import {
   clearStoredLogs
 } from '@/frontend/lib/logger';
 import { BrowserFormatter } from '@/frontend/lib/logger/formatters';
-
-// Mock browser APIs
-global.navigator = { userAgent: 'TestBrowser/1.0' } as any;
-global.window = { 
-  location: { href: 'http://test.com', search: '' },
-  addEventListener: mock(() => {}),
-  setTimeout: global.setTimeout,
-} as any;
-
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => { store[key] = value; },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { store = {}; },
-  };
-})();
-global.localStorage = localStorageMock as any;
 
 describe('Frontend Logger Tests', () => {
   let consoleErrorSpy: any;
@@ -40,7 +21,7 @@ describe('Frontend Logger Tests', () => {
     consoleWarnSpy = spyOn(console, 'warn').mockImplementation(() => {});
     consoleInfoSpy = spyOn(console, 'info').mockImplementation(() => {});
     consoleDebugSpy = spyOn(console, 'debug').mockImplementation(() => {});
-    localStorageMock.clear();
+    (global.localStorage as any).clear();
   });
 
   afterEach(() => {

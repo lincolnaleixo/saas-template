@@ -34,6 +34,7 @@
 
 ### 6. **Documentation Updates**
 - Update `README.md` if needed
+- Update Guidelines docs if needed (`BACKEND-GUIDELINES.md`, `FRONTEND-GUIDELINES.md`, `GENERAL-GUIDELINES.md`) 
 - Update `FEATURES.md` if needed with:
   - New feature descriptions
   - Current implementation status

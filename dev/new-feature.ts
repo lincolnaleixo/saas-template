@@ -213,8 +213,6 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
   let fullOutput = "";
   let lastMessage = null;
   let turnCount = 0;
-  let lastToolUse = "";
-  let lastUpdateTime = Date.now();
 
   try {
     while (true) {
@@ -233,45 +231,15 @@ async function sendToClaude(prompt: string, continueConversation: boolean = fals
           
           // Update display based on message type
           if (jsonObj.type === "message") {
-            if (jsonObj.role === "assistant") {
-              turnCount++;
-              // For assistant messages, show on new line
-              console.log(`\n💬 Turn ${turnCount}: Claude is ${jsonObj.content.length > 100 ? 'writing a detailed response' : 'responding'}...`);
-            }
+            turnCount++;
+            // Clear previous line and show turn count
+            process.stdout.write(`\r🔄 Turn ${turnCount}: ${jsonObj.role} - ${jsonObj.content.substring(0, 60)}...`);
           } else if (jsonObj.type === "tool_use") {
-            // Show tool usage on its own line
-            const toolInfo = `${jsonObj.name}`;
-            if (jsonObj.name === "Read") {
-              console.log(`📖 Reading file: ${jsonObj.input?.file_path || 'unknown'}`);
-            } else if (jsonObj.name === "Edit" || jsonObj.name === "Write") {
-              console.log(`✏️  Editing: ${jsonObj.input?.file_path || 'unknown'}`);
-            } else if (jsonObj.name === "Bash") {
-              console.log(`🖥️  Running command: ${jsonObj.input?.command?.substring(0, 50) || 'unknown'}...`);
-            } else if (jsonObj.name === "TodoWrite") {
-              console.log(`📝 Updating todo list`);
-            } else {
-              console.log(`🔧 Using tool: ${toolInfo}`);
-            }
-            lastToolUse = toolInfo;
-          } else if (jsonObj.type === "tool_result") {
-            // Show brief result status
-            if (jsonObj.output) {
-              const outputPreview = typeof jsonObj.output === 'string' 
-                ? jsonObj.output.substring(0, 50) 
-                : JSON.stringify(jsonObj.output).substring(0, 50);
-              if (outputPreview.includes("error") || outputPreview.includes("Error")) {
-                console.log(`   ❌ Tool error`);
-              } else {
-                console.log(`   ✓ Success`);
-              }
-            }
+            process.stdout.write(`\r🔧 Using tool: ${jsonObj.name} ${jsonObj.input ? `(${JSON.stringify(jsonObj.input).substring(0, 40)}...)` : ''}`);
           } else if (jsonObj.type === "result") {
             lastMessage = jsonObj;
-            console.log(`\n✅ Completed in ${jsonObj.num_turns} turns`);
+            process.stdout.write(`\r✅ Completed in ${jsonObj.num_turns} turns\n`);
           }
-          
-          // Update timestamp
-          lastUpdateTime = Date.now();
         } catch (e) {
           // Not valid JSON, skip
         }

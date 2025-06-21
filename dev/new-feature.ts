@@ -163,7 +163,7 @@ function formatFeaturesAsTodos(features: string[]): string {
 }
 
 async function sendToClaude(prompt: string, continueConversation: boolean = false, sessionId: string, useOpus: boolean = false): Promise<any> {
-  console.log("\n🚀 Sending to Claude Code...\n");
+  console.log("\n📤 Sending to Claude Code...\n");
 
   // Build command arguments
   const args = [

@@ -1,0 +1,128 @@
+# Production-specific configuration
+services:
+  # API production build
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+      target: production
+    environment:
+      NODE_ENV: production
+    volumes:
+      # Only mount what's necessary in production
+      - ./logger:/app/logger
+      - ./.env.production:/app/.env.production:ro
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Worker production build
+  worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.worker
+      target: production
+    environment:
+      NODE_ENV: production
+    volumes:
+      - ./logger:/app/logger
+      - ./.env.production:/app/.env.production:ro
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: ${PROJECT_NAME:-conkero}_nginx
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/conf.d:/etc/nginx/templates:ro
+      - ./static:/app/static:ro
+      - ./frontend/dist:/app/frontend/dist:ro
+      - certbot-conf:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot:ro
+      - nginx-logs:/var/log/nginx
+    environment:
+      DOMAIN_NAME: ${DOMAIN_NAME}
+      API_PORT: ${API_PORT:-8000}
+      NGINX_HTTP_PORT: ${NGINX_HTTP_PORT:-80}
+      NGINX_HTTPS_PORT: ${NGINX_HTTPS_PORT:-443}
+      SSL_ENABLED: ${SSL_ENABLED:-true}
+    depends_on:
+      - api
+    restart: always
+    command: "/bin/sh -c 'while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g \"daemon off;\"'"
+
+  # Certbot for SSL certificates
+  certbot:
+    image: certbot/certbot
+    container_name: ${PROJECT_NAME:-conkero}_certbot
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: always
+
+  # Database backup service
+  backup:
+    image: postgres:16-alpine
+    container_name: ${PROJECT_NAME:-conkero}_backup
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./backups:/backups
+      - ./infra/scripts/backup.sh:/backup.sh:ro
+    depends_on:
+      - db
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "while true; do
+        /backup.sh
+        sleep ${BACKUP_INTERVAL:-86400}
+      done"
+    restart: always
+
+  # Production database configuration
+  db:
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # Production Redis configuration
+  redis:
+    volumes:
+      - redis-data:/data
+      - ./infra/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Additional production volumes
+volumes:
+  certbot-conf:
+    name: ${PROJECT_NAME:-conkero}_certbot_conf
+  certbot-www:
+    name: ${PROJECT_NAME:-conkero}_certbot_www
+  nginx-logs:
+    name: ${PROJECT_NAME:-conkero}_nginx_logs
+  backup-data:
+    name: ${PROJECT_NAME:-conkero}_backup_data

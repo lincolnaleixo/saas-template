@@ -1,0 +1,13 @@
+## 1. About the project
+
+### 1.1 Name
+
+// INPUT THE PROJECT NAME
+
+### 1.2 Vision
+
+//INPUT HERE THE PROJECT VISION IN DETAILS
+
+### 1.3 Description
+
+//INPUT HERE THE PROJECT DESCRIPTION IN DETAILS

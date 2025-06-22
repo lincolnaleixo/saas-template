@@ -1,0 +1,40 @@
+{
+  "name": "conkero",
+  "version": "1.0.0",
+  "description": "A SaaS platform that helps Amazon sellers increase sales and reduce manual work by automating critical business operations",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --hot backend/server.ts",
+    "start": "bun run backend/server.ts",
+    "worker": "bun run worker/index.ts",
+    "worker:dev": "bun run --hot worker/index.ts",
+    "test": "bun test",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "migrate": "bun run scripts/migrate.ts",
+    "migrate:generate": "drizzle-kit generate:pg",
+    "migrate:push": "drizzle-kit push:pg",
+    "migrate:drop": "drizzle-kit drop",
+    "studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^6.4.0",
+    "@lucia-auth/adapter-drizzle": "^1.0.2",
+    "bcrypt": "^5.1.1",
+    "drizzle-orm": "^0.29.3",
+    "ioredis": "^5.3.2",
+    "lucia": "^3.0.1",
+    "pg": "^8.11.3",
+    "pg-boss": "^9.0.3",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.0.0",
+    "@types/pg": "^8.10.9",
+    "drizzle-kit": "^0.20.10",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

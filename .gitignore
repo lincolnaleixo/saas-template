@@ -1,79 +1,50 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ================================================
+# APP - Environment Configuration
+# ================================================
+# Copy this file to .env.local for development
+# Never commit .env.local or production .env files
+# ================================================
+# REQUIRED: You MUST set these variables:
+# - DB_PASSWORD
+# - JWT_SECRET
+# ================================================
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Node Environment
+NODE_ENV=development                # development | production | test
 
-# testing
-/coverage
+# ================================================
+# Application Settings
+# ================================================
+APP_NAME=
+APP_VERSION=1.0.0
+APP_URL=http://localhost:8000       # Full URL of the application
+PROJECT_NAME=               # Used for Docker container naming
 
-# next.js
-/.next/
-/out/
+# Git Automation (AI Commit Messages)
+# -----------------------------------
+GROQ_API_KEY=
+GROQ_API_URL=https://api.groq.com/openai/v1/chat/completions
+GROQ_MODEL=qwen-qwq-32b
+GROQ_TEMPERATURE=0.7
+GROQ_TOP_P=0.95
+GROQ_MAX_TOKENS=50000
+GIT_MAX_RETRIES=3
+GIT_RETRY_DELAY_MS=3000
 
-# production
-/build
+# ================================================
+# Monitoring & Logging
+# ================================================
+# Log Level (error, warn, info, debug)
+LOG_LEVEL=info
 
-# misc
-.DS_Store
-*.pem
+# Logger Configuration
+LOG_TO_FILE=true                    # Enable file logging (backend)
+LOG_DIR=./logs                       # Directory for log files (backend)
+LOG_MAX_SIZE=10485760               # Max log file size in bytes (10MB)
+LOG_MAX_FILES=5                     # Number of log files to keep
+LOG_EMOJIS=true                     # Enable emojis in console logs (dev)
+LOG_COLORS=true                     # Enable colors in console logs (dev)
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env.local
-.env
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# Database backups
-backups/
-.DS_Store
-.archive
-dev/output
-
-
-# SSL certificates
-certbot/conf/*
-!certbot/conf/.gitkeep
-certbot/www/*
-!certbot/www/.gitkeep
-
-# Processed nginx configs
-nginx/conf.d/processed/
-
-# Backup files
-backups/
-
-# Database volumes (for development)
-database/
-db-schemas/
-
-# Logs
-*.log
-nginx/logs/
-
-# Schema hash file (regenerated on each migration)
-.schema-hash
-
-# Temporary migration files
-*.tmp
-*.backup
-
-# Local test migrations (prefix with test_)
-test_*.sql
+# Remote Logging (frontend)
+REMOTE_LOG_ENDPOINT=                # Endpoint for remote logging
+REMOTE_LOG_API_KEY=                 # API key for remote logging

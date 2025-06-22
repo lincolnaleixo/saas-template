@@ -1,0 +1,121 @@
+# Development-specific overrides and additional services
+services:
+  # API with hot-reload volumes
+  api:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+      target: development
+    volumes:
+      # Mount source code for hot-reload
+      - ../backend:/app/backend:cached
+      - ../frontend:/app/frontend:cached
+      - ../static:/app/static:cached
+      - ../worker:/app/worker:cached
+      - ../migrations:/app/migrations:cached
+      - ../tests:/app/tests:cached
+      - ../package.json:/app/package.json:cached
+      - ../tsconfig.json:/app/tsconfig.json:cached
+      - ../.env.local:/app/.env.local:cached
+      # Persist logs
+      - ../logger:/app/logger
+      # Exclude node_modules to use container's installed dependencies
+      - /app/node_modules
+      - /app/.bun
+    environment:
+      NODE_ENV: development
+      # Enable Bun's hot reload
+      BUN_HOT_RELOAD: "true"
+    command: ["/usr/local/bin/bun", "run", "--hot", "backend/server.ts"]
+
+  # Worker with hot-reload volumes
+  worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.worker
+      target: development
+    volumes:
+      # Same volume mounts as API for consistency
+      - ../backend:/app/backend:cached
+      - ../worker:/app/worker:cached
+      - ../migrations:/app/migrations:cached
+      - ../package.json:/app/package.json:cached
+      - ../tsconfig.json:/app/tsconfig.json:cached
+      - ../.env.local:/app/.env.local:cached
+      - ../logger:/app/logger
+      - /app/node_modules
+      - /app/.bun
+    environment:
+      NODE_ENV: development
+      BUN_HOT_RELOAD: "true"
+    command: ["/usr/local/bin/bun", "run", "--hot", "worker/index.ts"]
+
+  # Development tools
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ${PROJECT_NAME:-conkero}_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@conkero.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      - db
+    profiles:
+      - tools
+    restart: unless-stopped
+
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    container_name: ${PROJECT_NAME:-conkero}_redis_insight
+    ports:
+      - "${REDIS_INSIGHT_PORT:-8001}:8001"
+    depends_on:
+      - redis
+    profiles:
+      - tools
+    restart: unless-stopped
+
+  maildev:
+    image: maildev/maildev:latest
+    container_name: ${PROJECT_NAME:-conkero}_maildev
+    ports:
+      - "${MAILDEV_PORT:-1080}:1080"    # Web UI
+      - "${MAILDEV_SMTP_PORT:-1025}:1025" # SMTP
+    environment:
+      MAILDEV_WEB_PORT: 1080
+      MAILDEV_SMTP_PORT: 1025
+    profiles:
+      - tools
+    restart: unless-stopped
+
+  # Frontend development server (if needed)
+  frontend:
+    image: oven/bun:1-alpine
+    container_name: ${PROJECT_NAME:-conkero}_frontend
+    working_dir: /app
+    volumes:
+      - ../frontend:/app/frontend:cached
+      - ../static:/app/static:cached
+      - ../package.json:/app/package.json:cached
+      - ../.env.local:/app/.env.local:cached
+      - /app/node_modules
+      - /app/.bun
+    ports:
+      - "${FRONTEND_DEV_PORT:-4001}:4001"
+    environment:
+      NODE_ENV: development
+      API_URL: http://api:8000
+    command: ["/usr/local/bin/bun", "run", "--hot", "frontend/dev-server.ts"]
+    depends_on:
+      - api
+    profiles:
+      - frontend
+    restart: unless-stopped
+
+# Additional volumes for development
+volumes:
+  pgadmin-data:
+    name: ${PROJECT_NAME:-conkero}_pgadmin_data

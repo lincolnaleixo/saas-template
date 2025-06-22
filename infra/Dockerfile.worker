@@ -1,0 +1,62 @@
+# Development Dockerfile for Worker service with hot-reload
+FROM oven/bun:1-alpine AS development
+
+# Install required dependencies
+RUN apk add --no-cache curl bash
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files first for better layer caching
+COPY package.json bun.lockb* ./
+
+# Install dependencies
+RUN bun install --frozen-lockfile || bun install
+
+# Copy application code
+COPY . .
+
+# Create logger directory
+RUN mkdir -p ./logger
+
+# Expose health check port
+EXPOSE 8002
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8002/health || exit 1
+
+# Development command with hot-reload
+CMD ["/usr/local/bin/bun", "run", "--hot", "worker/index.ts"]
+
+# Production stage
+FROM oven/bun:1-alpine AS production
+
+# Install only production dependencies
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json bun.lockb* ./
+
+# Install production dependencies only
+RUN bun install --production --frozen-lockfile || bun install --production
+
+# Copy built application
+COPY . .
+
+# Create logger directory
+RUN mkdir -p ./logger
+
+# Run as non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
+
+USER nodejs
+
+EXPOSE 8002
+
+# Production command
+CMD ["/usr/local/bin/bun", "run", "worker/index.ts"]

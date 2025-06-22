@@ -1,5 +1,6 @@
 import { OpenAPIRegistry, OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
+import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
 import { env } from '../config/env';
 import { createLogger } from './logger';
 
@@ -8,57 +9,55 @@ import { createLogger } from './logger';
  * Auto-generates API documentation from Zod schemas
  */
 
+// Extend Zod with OpenAPI support
+extendZodWithOpenApi(z);
+
 const logger = createLogger({ source: 'openapi' });
 
 // Create OpenAPI registry
 export const registry = new OpenAPIRegistry();
 
 // Define reusable schemas
-export const UserSchema = registry.register(
-  'User',
-  z.object({
-    id: z.string().uuid().describe('Unique identifier'),
-    email: z.string().email().describe('User email address'),
-    name: z.string().describe('User full name'),
-    role: z.enum(['user', 'admin']).describe('User role'),
-    verified: z.boolean().describe('Email verification status'),
-    createdAt: z.string().datetime().describe('Account creation timestamp'),
-    updatedAt: z.string().datetime().describe('Last update timestamp'),
-  })
-);
+export const UserSchema = z.object({
+  id: z.string().uuid().describe('Unique identifier'),
+  email: z.string().email().describe('User email address'),
+  name: z.string().describe('User full name'),
+  role: z.enum(['user', 'admin']).describe('User role'),
+  verified: z.boolean().describe('Email verification status'),
+  createdAt: z.string().datetime().describe('Account creation timestamp'),
+  updatedAt: z.string().datetime().describe('Last update timestamp'),
+});
 
-export const ErrorSchema = registry.register(
-  'Error',
-  z.object({
-    error: z.string().describe('Error message'),
-    code: z.string().optional().describe('Error code'),
-    errors: z.array(z.any()).optional().describe('Validation errors'),
-  })
-);
+export const ErrorSchema = z.object({
+  error: z.string().describe('Error message'),
+  code: z.string().optional().describe('Error code'),
+  errors: z.array(z.any()).optional().describe('Validation errors'),
+});
 
-export const PaginationSchema = registry.register(
-  'Pagination',
-  z.object({
-    page: z.number().int().positive().default(1).describe('Current page number'),
-    limit: z.number().int().positive().max(100).default(20).describe('Items per page'),
-    total: z.number().int().describe('Total number of items'),
-    totalPages: z.number().int().describe('Total number of pages'),
-  })
-);
+export const PaginationSchema = z.object({
+  page: z.number().int().positive().default(1).describe('Current page number'),
+  limit: z.number().int().positive().max(100).default(20).describe('Items per page'),
+  total: z.number().int().describe('Total number of items'),
+  totalPages: z.number().int().describe('Total number of pages'),
+});
 
-export const HealthSchema = registry.register(
-  'Health',
-  z.object({
-    status: z.enum(['ok', 'error']).describe('Overall health status'),
-    timestamp: z.string().datetime().describe('Health check timestamp'),
-    services: z.object({
-      database: z.boolean().describe('Database connection status'),
-      redis: z.boolean().describe('Redis connection status'),
-      jobs: z.boolean().optional().describe('Job queue status'),
-    }).describe('Individual service statuses'),
-    version: z.string().describe('Application version'),
-  })
-);
+export const HealthSchema = z.object({
+  status: z.enum(['ok', 'error']).describe('Overall health status'),
+  timestamp: z.string().datetime().describe('Health check timestamp'),
+  services: z.object({
+    database: z.boolean().describe('Database connection status'),
+    redis: z.boolean().describe('Redis connection status'),
+    jobs: z.boolean().optional().describe('Job queue status'),
+  }).describe('Individual service statuses'),
+  version: z.string().describe('Application version'),
+  responseTime: z.number().optional().describe('Response time in milliseconds'),
+});
+
+// Register schemas with OpenAPI
+registry.register('User', UserSchema);
+registry.register('Error', ErrorSchema);
+registry.register('Pagination', PaginationSchema);
+registry.register('Health', HealthSchema);
 
 // Cache for generated documentation
 let cachedSpec: any = null;

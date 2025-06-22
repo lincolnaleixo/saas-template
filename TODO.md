@@ -1,2 +1,1 @@
-- fazer como se fosse com conkero
 - criar o end flow prompt that should be executed after i run the new feature or bugfix or others

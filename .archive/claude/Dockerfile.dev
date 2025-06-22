@@ -1,0 +1,25 @@
+# Development Dockerfile with hot reload support
+FROM oven/bun:1-alpine
+
+WORKDIR /app
+
+# Install development dependencies
+RUN apk add --no-cache \
+    git \
+    curl \
+    bash
+
+# Copy package files
+COPY package.json bun.lockb* ./
+
+# Install all dependencies (including dev)
+RUN bun install --frozen-lockfile
+
+# Create necessary directories
+RUN mkdir -p logger uploads
+
+# Expose port
+EXPOSE 8000
+
+# Development command (will be overridden in docker-compose.dev.yml)
+CMD ["bun", "run", "--hot", "backend/server.ts"]

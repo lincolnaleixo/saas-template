@@ -1,5 +1,6 @@
 import { db, eq, and } from '../lib/db';
-import { users, userProfiles, NewUser, User, UpdateUser, NewUserProfile } from '../models/user.model';
+import { sql } from 'drizzle-orm';
+import { users, userProfiles, NewUser, User, UpdateUser } from '../models/user.model';
 import { createSession, invalidateUserSessions } from '../lib/auth';
 import { cache } from '../lib/cache';
 import { createLogger } from '../lib/logger';
@@ -91,7 +92,7 @@ export class UserService {
       const { password: _, verificationToken: __, resetToken: ___, ...safeUser } = user;
       await cache.set(cacheKey, safeUser, 300); // 5 minutes
       
-      return safeUser as User;
+      return safeUser as any as User;
     } catch (error) {
       logger.error('Failed to find user by ID', { userId: id, error });
       throw error;
@@ -115,7 +116,7 @@ export class UserService {
       }
       
       const { password: _, verificationToken: __, resetToken: ___, ...safeUser } = user;
-      return safeUser as User;
+      return safeUser as any as User;
     } catch (error) {
       logger.error('Failed to find user by email', { email, error });
       throw error;
@@ -335,7 +336,7 @@ export class UserService {
       const offset = (page - 1) * limit;
       
       // Get total count
-      const [{ count }] = await db.select({ count: db.count() }).from(users);
+      const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(users);
       
       // Get users
       const userList = await db.query.users.findMany({

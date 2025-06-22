@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conkero - Amazon Seller Automation Platform</title>
+  <meta name="description" content="Automate your Amazon business operations, save time, and scale efficiently">
+  
+  <!-- PicoCSS CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="/styles/variables.css">
+  <link rel="stylesheet" href="/styles/global.css">
+  
+  <!-- Preload critical modules -->
+  <link rel="modulepreload" href="/main.js">
+  
+  <!-- Critical inline styles for FOUC prevention -->
+  <style>
+    /* Hide undefined custom elements */
+    :not(:defined) {
+      visibility: hidden;
+    }
+    
+    /* Smooth page reveal */
+    body {
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+    
+    body.components-ready {
+      opacity: 1;
+    }
+    
+    /* Component placeholders to prevent layout shift */
+    app-header {
+      display: block;
+      height: 60px;
+    }
+    
+    app-nav {
+      display: block;
+    }
+    
+    #app {
+      display: block;
+      min-height: calc(100vh - 60px);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <app-header></app-header>
+  
+  <!-- Main content -->
+  <main id="app" class="container">
+    <!-- Page content will be rendered here -->
+    <div class="skeleton" style="height: 200px; margin-top: 2rem;">
+      <div class="skeleton-line"></div>
+      <div class="skeleton-line short"></div>
+    </div>
+  </main>
+  
+  <!-- Toast notifications -->
+  <app-toast></app-toast>
+  
+  <!-- Modal container -->
+  <app-modal></app-modal>
+  
+  <!-- HTMX CDN -->
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  
+  <!-- Main application entry point -->
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

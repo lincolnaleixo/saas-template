@@ -98,7 +98,7 @@ export function checkPasswordStrength(password: string): {
 /**
  * Validate environment variables
  */
-export function validateEnvVar(name: string, value: string | undefined, type: 'string' | 'number' | 'boolean' | 'url'): boolean {
+export function validateEnvVar(_name: string, value: string | undefined, type: 'string' | 'number' | 'boolean' | 'url'): boolean {
   if (!value) return false;
   
   switch (type) {

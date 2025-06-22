@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { dbConfig } from '../config/database';
 import { createLogger } from './logger';
+import * as schema from '../models';
 
 /**
  * Database connection and Drizzle ORM setup
@@ -27,8 +28,9 @@ const sql = postgres(dbConfig.connectionString, {
   },
 });
 
-// Create Drizzle instance
+// Create Drizzle instance with schema
 export const db = drizzle(sql, {
+  schema,
   logger: {
     logQuery: (query, params) => {
       logger.debug('Executing query', { 

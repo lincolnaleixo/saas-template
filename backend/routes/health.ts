@@ -40,7 +40,7 @@ registry.registerPath({
 /**
  * Health check handler
  */
-async function healthCheck(req: Request): Promise<Response> {
+async function healthCheck(_req: Request): Promise<Response> {
   const startTime = Date.now();
   
   // Check all services
@@ -52,7 +52,7 @@ async function healthCheck(req: Request): Promise<Response> {
   // Check job queue if available
   let jobsHealthy = true;
   try {
-    if (boss && boss.started) {
+    if (boss && (boss as any).started) {
       // Check if we can connect to the job queue by checking table existence
       // pg-boss creates its own schema and tables
       jobsHealthy = true; // If boss.started is true, it means it's connected
@@ -61,7 +61,7 @@ async function healthCheck(req: Request): Promise<Response> {
     }
   } catch (error) {
     jobsHealthy = false;
-    logger.error('Job queue health check failed', error as Error);
+    logger.error('Job queue health check failed', error instanceof Error ? error : new Error(String(error)));
   }
   
   const allHealthy = dbHealthy && redisHealthy;
@@ -88,14 +88,14 @@ async function healthCheck(req: Request): Promise<Response> {
 /**
  * Liveness probe (simple check)
  */
-async function livenessCheck(req: Request): Promise<Response> {
+async function livenessCheck(_req: Request): Promise<Response> {
   return Response.json({ status: 'alive' });
 }
 
 /**
  * Readiness probe (checks dependencies)
  */
-async function readinessCheck(req: Request): Promise<Response> {
+async function readinessCheck(_req: Request): Promise<Response> {
   const dbHealthy = await checkDatabaseConnection();
   const redisHealthy = await checkRedisConnection();
   

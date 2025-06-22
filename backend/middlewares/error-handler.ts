@@ -11,7 +11,7 @@ const logger = createLogger({ source: 'error-handler' });
 export class ApiError extends Error {
   constructor(
     public statusCode: number,
-    public message: string,
+    public override message: string,
     public code?: string,
     public errors?: any[]
   ) {

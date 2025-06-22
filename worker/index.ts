@@ -1,8 +1,7 @@
 import { boss, jobHandlers } from '../backend/lib/jobs';
-import { db, sql } from '../backend/lib/db';
+import { sql } from '../backend/lib/db';
 import { createLogger } from '../backend/lib/logger';
 import { startHealthCheckServer } from './health';
-import { eq } from 'drizzle-orm';
 
 const logger = createLogger({ source: 'worker' });
 
@@ -21,7 +20,7 @@ async function startWorker() {
     
     // Register all job handlers
     for (const [jobName, handler] of Object.entries(jobHandlers)) {
-      await boss.work(jobName, { teamSize: 5, teamConcurrency: 2 }, handler);
+      await boss.work(jobName, handler as any);
       logger.info('Registered job handler', { jobName });
     }
     
@@ -30,7 +29,7 @@ async function startWorker() {
     
     logger.info('Worker service started successfully');
   } catch (error) {
-    logger.error('Failed to start worker', error);
+    logger.error('Failed to start worker', error instanceof Error ? error : new Error(String(error)));
     process.exit(1);
   }
 }
@@ -67,7 +66,6 @@ async function loadUserSchedules() {
           await boss.schedule(
             scheduleName,
             schedule.cron_expression,
-            schedule.job_name,
             { 
               userId: schedule.user_id,
               ...JSON.parse(schedule.config || '{}')
@@ -92,7 +90,7 @@ async function loadUserSchedules() {
       }
     }
   } catch (error) {
-    logger.error('Failed to load user schedules', error);
+    logger.error('Failed to load user schedules', error instanceof Error ? error : new Error(String(error)));
   }
 }
 
@@ -127,7 +125,7 @@ process.on('SIGTERM', async () => {
     logger.info('pg-boss stopped');
     process.exit(0);
   } catch (error) {
-    logger.error('Error during shutdown', error);
+    logger.error('Error during shutdown', error instanceof Error ? error : new Error(String(error)));
     process.exit(1);
   }
 });
@@ -140,7 +138,7 @@ process.on('SIGINT', async () => {
     logger.info('pg-boss stopped');
     process.exit(0);
   } catch (error) {
-    logger.error('Error during shutdown', error);
+    logger.error('Error during shutdown', error instanceof Error ? error : new Error(String(error)));
     process.exit(1);
   }
 });

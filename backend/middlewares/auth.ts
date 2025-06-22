@@ -1,4 +1,4 @@
-import { getUser, requireAuth as libRequireAuth, requireRole as libRequireRole } from '../lib/auth';
+import { getUser, requireAuth as libRequireAuth } from '../lib/auth';
 import { createLogger } from '../lib/logger';
 import type { User } from '../models/user.model';
 
@@ -26,7 +26,7 @@ export async function optionalAuth(request: Request): Promise<User | null> {
     
     return user;
   } catch (error) {
-    logger.error('Error in optional auth', error as Error);
+    logger.error('Error in optional auth', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -53,7 +53,7 @@ export function requirePermission(permission: string) {
  * Rate limit by user
  * More lenient than IP-based rate limiting
  */
-export function userRateLimit(windowMs: number, max: number) {
+export function userRateLimit(_windowMs: number, _max: number) {
   return async (request: Request): Promise<void> => {
     const user = await getUser(request);
     

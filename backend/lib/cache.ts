@@ -133,7 +133,7 @@ export const cache = {
       logger.warn('Cache flushed');
       return true;
     } catch (error) {
-      logger.error('Cache flush error', error);
+      logger.error('Cache flush error', error instanceof Error ? error : new Error(String(error)));
       return false;
     }
   },
@@ -221,7 +221,7 @@ export async function checkRedisConnection(): Promise<boolean> {
     await redis.ping();
     return true;
   } catch (error) {
-    logger.error('Redis health check failed', error);
+    logger.error('Redis health check failed', error instanceof Error ? error : new Error(String(error)));
     return false;
   }
 }
@@ -232,6 +232,6 @@ export async function closeRedisConnection(): Promise<void> {
     await redis.quit();
     logger.info('Redis connection closed');
   } catch (error) {
-    logger.error('Error closing Redis connection', error);
+    logger.error('Error closing Redis connection', error instanceof Error ? error : new Error(String(error)));
   }
 }

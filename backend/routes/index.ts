@@ -3,6 +3,7 @@ import { ipRateLimit, pathRateLimit } from '../middlewares/rate-limit';
 import { userRoutes } from './users';
 import { healthRoutes } from './health';
 import { docsRoutes } from './docs';
+import { staticRoutes } from './static';
 import { createLogger } from '../lib/logger';
 
 /**
@@ -16,12 +17,14 @@ const logger = createLogger({ source: 'routes' });
 import './users';
 import './health';
 import './docs';
+import './static';
 
 // Combine all routes
 const allRoutes = {
   ...healthRoutes,
   ...docsRoutes,
   ...userRoutes,
+  ...staticRoutes,
   // Add more route groups here as you create them
 };
 

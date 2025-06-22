@@ -13,8 +13,8 @@ import type { User } from '../models/user.model';
 
 const logger = createLogger({ source: 'auth' });
 
-// Create Lucia adapter with Drizzle
-const adapter = new DrizzlePostgreSQLAdapter(db, sessions, users);
+// Create Lucia adapter with Drizzle - cast tables to correct type
+const adapter = new DrizzlePostgreSQLAdapter(db, sessions as any, users as any);
 
 // Initialize Lucia
 export const lucia = new Lucia(adapter, {
@@ -85,7 +85,7 @@ export async function getUser(request: Request): Promise<User | null> {
     
     return user as User;
   } catch (error) {
-    logger.error('Error getting user from request', error as Error);
+    logger.error('Error getting user from request', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }
@@ -129,7 +129,7 @@ export async function invalidateUserSessions(userId: string): Promise<void> {
     await lucia.invalidateUserSessions(userId);
     
     // Clear all cached sessions for this user
-    const keys = await cache.keys(`session:*`);
+    // const _keys = await cache.keys(`session:*`);
     // Note: In production, you might want to track user sessions differently
     
     logger.info('All user sessions invalidated', { userId });

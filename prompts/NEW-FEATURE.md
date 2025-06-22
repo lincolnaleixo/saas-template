@@ -1,42 +1,51 @@
 # NEW FEATURE Implementation Request
 
-## Task Requirements - Strictly follow the orders
+## 📋 Task Execution Flow
 
-1. Create the necessary docker compose and docker images for the new backend created work. We should have auto reload on the related services
-2. Adjust the dev.sh script if needed
-3. After doing the tasks avode doo the End Flow tasks:
+This request involves two phases: Implementation and Finalization. Please complete them in order.
 
-3.1 Code Documentation
+### Phase 1: Implementation Tasks
+
+Execute these core implementation tasks first:
+
+1. Please crete the web app for the saas, following the directivies of the guidelines. pay attention most to the frontend and css guidelines. The web app should be clean, mobile friendly and fast. it should also be beautiful like shadcn and usefull.
+2. Then create a products page and a settings page. be very simple. The products page will have as columns image, title, asin, sku and price. 
+
+### Phase 2: Finalization Tasks
+
+After completing the implementation tasks, execute ALL of these finalization steps:
+
+#### 2.1 Code Documentation
 - Add comprehensive comments to all new/modified code
 - Include JSDoc comments for functions and classes
 - Document complex logic and business rules
 - Add inline comments for non-obvious code sections
 
-3.2. Environment Configuration
+#### 2.2 Environment Configuration
 - Update `.env.example` with any new environment variables
 - Update `.env.local` with development values
 - Document new variables with descriptions and examples
 - Ensure all secrets have placeholder values in `.env.example`
 
-3.3. Scripts and Infrastructure
+#### 2.3 Scripts and Infrastructure
 - Update scripts in `./scripts/` folder if needed
 - Modify Docker Compose files if new services were added
 - Update Dockerfiles for any new dependencies
 - Ensure all ports are configurable via environment variables
 
-3.4. Code Quality - Linting
+#### 2.4 Code Quality - Linting
 - Run `bun run lint` (or appropriate linter)
 - Fix all ESLint/Prettier errors automatically
 - Manually resolve any remaining lint warnings
 - Ensure code follows project style guidelines
 
-3.5. Code Quality - TypeScript
+#### 2.5 Code Quality - TypeScript
 - Run `bun run typecheck` (or `tsc --noEmit`)
 - Fix all TypeScript compilation errors
 - Ensure proper types for all new code
 - Add type definitions for any external libraries
 
-3.6. Documentation Updates
+#### 2.6 Documentation Updates
 - Update `README.md` if needed
 - Update Guidelines docs if needed (`BACKEND-GUIDELINES.md`, `FRONTEND-GUIDELINES.md`, `GENERAL-GUIDELINES.md`) 
 - Update `FEATURES.md` if needed with:
@@ -44,7 +53,7 @@
   - Current implementation status
   - Future roadmap updates
 
-3.7. Final Summary
+#### 2.7 Final Summary
 Provide a comprehensive summary including:
 - **What was implemented**: List of features/fixes with file locations
 - **What changed**: Modified files and their purposes
@@ -53,20 +62,24 @@ Provide a comprehensive summary including:
 - **Dependencies**: New packages or services added
 - **Migration steps**: Database or configuration changes needed
 
-3.8 🔍 Quality Gates
+### 🔍 Quality Gates Checklist
 
-- [ ] Code documentation
-- [ ] Environment variables are updated and documented
-- [ ] Scripts and Infrastructure are updated
-- [ ] No TypeScript errors
-- [ ] No linting errors
-- [ ] Documentation (README.md and FEATURES.md) is updated
+Verify ALL items are completed before finishing:
 
-Attention! Strictly return the final summary and the each quality gate
+- [ ] Code documentation added to all new/modified files
+- [ ] Environment variables updated and documented
+- [ ] Scripts and Infrastructure properly updated
+- [ ] No TypeScript errors (verified with typecheck)
+- [ ] No linting errors (verified with lint command)
+- [ ] Documentation (README.md and FEATURES.md) is current
 
-** Now Read ALL guidelines from the documentation and use them strictly based on the task(s) above**
+**IMPORTANT:** You must provide the final summary AND report the status of each quality gate item above.
 
-**Please think hard about the tasks**
+---
+
+**Now read ALL guidelines from the documentation below and apply them strictly to the tasks above.**
+
+**Please think long and hard to execute tasks without errors**
 
 ---
 
@@ -2700,65 +2713,3 @@ Templates in `nginx/conf.d/*.template` are processed on deployment with environm
 ### Health Checks
 
 All services include health checks for proper orchestration and monitoring.
-
-# End Flow Commands
-
-## 📋 Post-Implementation Checklist
-
-### 1. **Code Documentation**
-- Add comprehensive comments to all new/modified code
-- Include JSDoc comments for functions and classes
-- Document complex logic and business rules
-- Add inline comments for non-obvious code sections
-
-### 2. **Environment Configuration**
-- Update `.env.example` with any new environment variables
-- Update `.env.local` with development values
-- Document new variables with descriptions and examples
-- Ensure all secrets have placeholder values in `.env.example`
-
-### 3. **Scripts and Infrastructure**
-- Update scripts in `./scripts/` folder if needed
-- Modify Docker Compose files if new services were added
-- Update Dockerfiles for any new dependencies
-- Ensure all ports are configurable via environment variables
-
-### 4. **Code Quality - Linting**
-- Run `bun run lint` (or appropriate linter)
-- Fix all ESLint/Prettier errors automatically
-- Manually resolve any remaining lint warnings
-- Ensure code follows project style guidelines
-
-### 5. **Code Quality - TypeScript**
-- Run `bun run typecheck` (or `tsc --noEmit`)
-- Fix all TypeScript compilation errors
-- Ensure proper types for all new code
-- Add type definitions for any external libraries
-
-### 6. **Documentation Updates**
-- Update `README.md` if needed
-- Update Guidelines docs if needed (`BACKEND-GUIDELINES.md`, `FRONTEND-GUIDELINES.md`, `GENERAL-GUIDELINES.md`) 
-- Update `FEATURES.md` if needed with:
-  - New feature descriptions
-  - Current implementation status
-  - Future roadmap updates
-
-### 7. **Final Summary**
-Provide a comprehensive summary including:
-- **What was implemented**: List of features/fixes with file locations
-- **What changed**: Modified files and their purposes
-- **How to test**: Step-by-step testing instructions
-- **Breaking changes**: Any changes that affect existing functionality
-- **Dependencies**: New packages or services added
-- **Migration steps**: Database or configuration changes needed
-
-## 🔍 Quality Gates
-
-- [ ] Code documentation
-- [ ] Environment variables are updated and documented
-- [ ] Scripts and Infrastructure are updated
-- [ ] No TypeScript errors
-- [ ] No linting errors
-- [ ] Documentation (README.md and FEATURES.md) is updated
-
-Attention! Strictly return the final summary and the each quality gate

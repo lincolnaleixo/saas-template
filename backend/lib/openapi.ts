@@ -79,7 +79,7 @@ export function generateOpenAPIDocument(baseUrl: string) {
   
   const generator = new OpenApiGeneratorV3(registry.definitions);
   
-  cachedSpec = generator.generateDocument({
+  const baseDoc = generator.generateDocument({
     openapi: '3.0.0',
     info: {
       version: env.APP_VERSION,
@@ -103,7 +103,13 @@ export function generateOpenAPIDocument(baseUrl: string) {
       { name: 'Users', description: 'User management' },
       { name: 'Health', description: 'System health and monitoring' },
     ],
+  });
+
+  // Add components manually after generation
+  cachedSpec = {
+    ...baseDoc,
     components: {
+      ...baseDoc.components,
       securitySchemes: {
         sessionCookie: {
           type: 'apiKey',
@@ -120,7 +126,7 @@ export function generateOpenAPIDocument(baseUrl: string) {
       },
     },
     security: [{ sessionCookie: [] }],
-  });
+  };
   
   cacheTimestamp = now;
   logger.debug('OpenAPI documentation generated');
@@ -137,7 +143,7 @@ if (env.NODE_ENV === 'development') {
 }
 
 // Helper to create consistent error responses
-export function createErrorResponse(statusCode: number, description: string) {
+export function createErrorResponse(_statusCode: number, description: string) {
   return {
     description,
     content: {

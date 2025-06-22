@@ -50,7 +50,7 @@ export interface UserSyncJobData {
 // Define job handlers with progress tracking
 export const jobHandlers = {
   'send-email': async (job: PgBoss.Job<EmailJobData>) => {
-    const { to, subject, body, userId } = job.data;
+    const { to, subject, userId } = job.data;
     
     logger.info('Sending email', { to, subject, jobId: job.id });
     
@@ -230,14 +230,18 @@ export async function createJob<T extends JobName>(
   options?: PgBoss.SendOptions
 ): Promise<string> {
   try {
-    const jobId = await boss.send(jobName, data, options);
+    const jobId = await boss.send(jobName, data, options || {});
+    
+    if (!jobId) {
+      throw new Error('Failed to create job - no job ID returned');
+    }
     
     // Track job for user if userId is provided
-    if ('userId' in data) {
+    if ('userId' in data && data.userId) {
       await db.insert(userJobStatus).values({
         id: jobId,
         userId: data.userId as string,
-        tenantId: 'tenantId' in data ? data.tenantId as string : 'default',
+        tenantId: 'tenantId' in data && data.tenantId ? (data.tenantId as string) : '00000000-0000-0000-0000-000000000000',
         jobType: jobName,
         status: 'pending',
         progress: 0,

@@ -120,7 +120,7 @@ function addCorsHeaders(response: Response): Response {
   response.headers.set('X-Content-Type-Options', apiConfig.security.xContentTypeOptions);
   response.headers.set('X-XSS-Protection', apiConfig.security.xXssProtection);
   
-  if (apiConfig.security.strictTransportSecurity) {
+  if (apiConfig.security.strictTransportSecurity && typeof apiConfig.security.strictTransportSecurity === 'string') {
     response.headers.set('Strict-Transport-Security', apiConfig.security.strictTransportSecurity);
   }
   

@@ -1,5 +1,5 @@
 import { boss, jobHandlers } from '../backend/lib/jobs';
-import { db } from '../backend/lib/db';
+import { db, sql } from '../backend/lib/db';
 import { createLogger } from '../backend/lib/logger';
 import { startHealthCheckServer } from './health';
 import { eq } from 'drizzle-orm';
@@ -39,27 +39,27 @@ async function startWorker() {
 async function loadUserSchedules() {
   try {
     // Check if userJobSchedules table exists
-    const tables = await db.execute(`
+    const tables = await sql`
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
       AND table_name = 'user_job_schedules'
-    `);
+    `;
     
-    if (tables.rows.length === 0) {
+    if (tables.length === 0) {
       logger.warn('user_job_schedules table does not exist yet, skipping schedule loading');
       return;
     }
     
     // Load active schedules
-    const schedules = await db.execute(`
+    const schedules = await sql`
       SELECT * FROM user_job_schedules 
       WHERE is_active = true
-    `);
+    `;
     
-    logger.info('Loading user schedules', { count: schedules.rows.length });
+    logger.info('Loading user schedules', { count: schedules.length });
     
-    for (const schedule of schedules.rows) {
+    for (const schedule of schedules) {
       if (schedule.cron_expression) {
         const scheduleName = `${schedule.job_name}-user-${schedule.user_id}`;
         
@@ -104,21 +104,15 @@ export async function updateJobProgress(
   message: string
 ) {
   try {
-    await db.execute(`
+    await sql`
       INSERT INTO user_job_status (id, user_id, progress, message, status, updated_at)
-      VALUES ($1, $2, $3, $4, $5, NOW())
+      VALUES (${jobId}, ${userId}, ${progress}, ${message}, ${progress === 100 ? 'completed' : 'running'}, NOW())
       ON CONFLICT (id) DO UPDATE SET
         progress = EXCLUDED.progress,
         message = EXCLUDED.message,
         status = EXCLUDED.status,
         updated_at = EXCLUDED.updated_at
-    `, [
-      jobId,
-      userId,
-      progress,
-      message,
-      progress === 100 ? 'completed' : 'running'
-    ]);
+    `;
   } catch (error) {
     logger.error('Failed to update job progress', { jobId, error });
   }

@@ -47,7 +47,7 @@ fi
 
 # Configuration with defaults
 PROJECT_NAME="${PROJECT_NAME:-myapp}"
-DB_CONTAINER="${PROJECT_NAME}-db"
+DB_CONTAINER="${PROJECT_NAME}_db"
 DB_NAME="${DB_NAME:-$PROJECT_NAME}"
 DB_USER="${DB_USER:-postgres}"
 BACKUP_DIR="${BACKUP_DIR:-./backups}"

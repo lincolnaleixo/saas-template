@@ -52,9 +52,10 @@ async function healthCheck(req: Request): Promise<Response> {
   // Check job queue if available
   let jobsHealthy = true;
   try {
-    if (boss.started) {
-      const state = await boss.getQueueSize();
-      jobsHealthy = state !== null;
+    if (boss && boss.started) {
+      // Check if we can connect to the job queue by getting all queue sizes
+      const queues = await boss.getQueues();
+      jobsHealthy = Array.isArray(queues);
     }
   } catch (error) {
     jobsHealthy = false;

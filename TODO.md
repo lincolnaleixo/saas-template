@@ -1,1 +1,2 @@
 - criar o end flow prompt that should be executed after i run the new feature or bugfix or others
+- logger folder should be logs folder

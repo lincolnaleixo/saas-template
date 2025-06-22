@@ -39,6 +39,9 @@ export const db = drizzle(sql, {
   },
 });
 
+// Export the raw SQL client for direct queries
+export { sql };
+
 // Health check function
 export async function checkDatabaseConnection(): Promise<boolean> {
   try {
@@ -60,9 +63,6 @@ export async function closeDatabaseConnection(): Promise<void> {
     logger.error('Error closing database connection', error as Error);
   }
 }
-
-// Export the raw SQL client for advanced queries
-export { sql };
 
 // Re-export common Drizzle functions
 export { eq, and, or, not, inArray, notInArray, isNull, isNotNull, desc, asc } from 'drizzle-orm';

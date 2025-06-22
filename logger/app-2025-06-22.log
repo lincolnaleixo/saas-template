@@ -392,3 +392,84 @@
 {"timestamp":"2025-06-22T07:20:10.379Z","level":"info","message":"Database connection successful","source":"database","context":{}}
 {"timestamp":"2025-06-22T07:20:10.380Z","level":"info","message":"Request completed","source":"server","context":{"requestId":"7b07e9e8-f46f-4269-823a-8ce9f24a77bc","method":"GET","path":"/health","status":200,"duration":2}}
 {"timestamp":"2025-06-22T07:20:10.380Z","level":"error","message":"Job queue health check failed","source":"health","context":{"error":"Missing queue name argument","stack":"AssertionError [ERR_ASSERTION]: Missing queue name argument\n    at getQueueSize (/app/node_modules/pg-boss/src/manager.js:588:5)\n    at getQueueSize (/app/node_modules/pg-boss/src/manager.js:587:23)\n    at healthCheck (/app/backend/routes/health.ts:56:32)\n    at processTicksAndRejections (native:7:39)"}}
+{"timestamp":"2025-06-22T07:20:40.416Z","level":"info","message":"Request received","source":"server","context":{"requestId":"0f2379d8-0627-4342-9665-181960003cec","method":"GET","path":"/health","userAgent":"curl/8.12.1","ip":"unknown"}}
+{"timestamp":"2025-06-22T07:20:40.418Z","level":"info","message":"Database connection successful","source":"database","context":{}}
+{"timestamp":"2025-06-22T07:20:40.419Z","level":"error","message":"Job queue health check failed","source":"health","context":{"error":"Missing queue name argument","stack":"AssertionError [ERR_ASSERTION]: Missing queue name argument\n    at getQueueSize (/app/node_modules/pg-boss/src/manager.js:588:5)\n    at getQueueSize (/app/node_modules/pg-boss/src/manager.js:587:23)\n    at healthCheck (/app/backend/routes/health.ts:56:32)\n    at processTicksAndRejections (native:7:39)"}}
+{"timestamp":"2025-06-22T07:20:40.422Z","level":"info","message":"Request completed","source":"server","context":{"requestId":"0f2379d8-0627-4342-9665-181960003cec","method":"GET","path":"/health","status":200,"duration":8}}
+{"timestamp":"2025-06-22T07:21:10.460Z","level":"info","message":"Request received","source":"server","context":{"requestId":"016e1815-eeb3-4ef6-840a-0ea0a4a70220","method":"GET","path":"/health","userAgent":"curl/8.12.1","ip":"unknown"}}
+{"timestamp":"2025-06-22T07:21:10.463Z","level":"info","message":"Database connection successful","source":"database","context":{}}
+{"timestamp":"2025-06-22T07:21:10.464Z","level":"error","message":"Job queue health check failed","source":"health","context":{"error":"Missing queue name argument","stack":"AssertionError [ERR_ASSERTION]: Missing queue name argument\n    at getQueueSize (/app/node_modules/pg-boss/src/manager.js:588:5)\n    at getQueueSize (/app/node_modules/pg-boss/src/manager.js:587:23)\n    at healthCheck (/app/backend/routes/health.ts:56:32)\n    at processTicksAndRejections (native:7:39)"}}
+{"timestamp":"2025-06-22T07:21:10.464Z","level":"info","message":"Request completed","source":"server","context":{"requestId":"016e1815-eeb3-4ef6-840a-0ea0a4a70220","method":"GET","path":"/health","status":200,"duration":4}}
+{"timestamp":"2025-06-22T07:21:40.501Z","level":"info","message":"Request received","source":"server","context":{"requestId":"df6d3ea5-cdbd-4e19-bca0-19ecd3cf379d","method":"GET","path":"/health","userAgent":"curl/8.12.1","ip":"unknown"}}
+{"timestamp":"2025-06-22T07:21:40.503Z","level":"info","message":"Database connection successful","source":"database","context":{}}
+{"timestamp":"2025-06-22T07:21:40.503Z","level":"error","message":"Job queue health check failed","source":"health","context":{"error":"Missing queue name argument","stack":"AssertionError [ERR_ASSERTION]: Missing queue name argument\n    at getQueueSize (/app/node_modules/pg-boss/src/manager.js:588:5)\n    at getQueueSize (/app/node_modules/pg-boss/src/manager.js:587:23)\n    at healthCheck (/app/backend/routes/health.ts:56:32)\n    at processTicksAndRejections (native:7:39)"}}
+{"timestamp":"2025-06-22T07:21:40.503Z","level":"info","message":"Request completed","source":"server","context":{"requestId":"df6d3ea5-cdbd-4e19-bca0-19ecd3cf379d","method":"GET","path":"/health","status":200,"duration":2}}
+{"timestamp":"2025-06-22T07:22:10.539Z","level":"info","message":"Request received","source":"server","context":{"requestId":"c3e4a180-11db-4eab-b4fb-3c6ce05646f9","method":"GET","path":"/health","userAgent":"curl/8.12.1","ip":"unknown"}}
+{"timestamp":"2025-06-22T07:22:10.542Z","level":"info","message":"Database connection successful","source":"database","context":{}}
+{"timestamp":"2025-06-22T07:22:10.542Z","level":"error","message":"Job queue health check failed","source":"health","context":{"error":"Missing queue name argument","stack":"AssertionError [ERR_ASSERTION]: Missing queue name argument\n    at getQueueSize (/app/node_modules/pg-boss/src/manager.js:588:5)\n    at getQueueSize (/app/node_modules/pg-boss/src/manager.js:587:23)\n    at healthCheck (/app/backend/routes/health.ts:56:32)\n    at processTicksAndRejections (native:7:39)"}}
+{"timestamp":"2025-06-22T07:22:10.543Z","level":"info","message":"Request completed","source":"server","context":{"requestId":"c3e4a180-11db-4eab-b4fb-3c6ce05646f9","method":"GET","path":"/health","status":200,"duration":4}}
+{"timestamp":"2025-06-22T07:22:27.991Z","level":"error","message":"Unhandled rejection","source":"server","context":{"reason":{},"promise":{}}}
+{"timestamp":"2025-06-22T07:22:28.344Z","level":"info","message":"Initializing services...","source":"server","context":{}}
+{"timestamp":"2025-06-22T07:22:28.337Z","level":"info","message":"Connecting to database","source":"database","context":{"host":"db","database":"conkero","user":"postgres"}}
+{"timestamp":"2025-06-22T07:22:28.356Z","level":"info","message":"Database connection successful","source":"database","context":{}}
+{"timestamp":"2025-06-22T07:22:28.357Z","level":"info","message":"Redis connected","source":"cache","context":{}}
+{"timestamp":"2025-06-22T07:22:28.358Z","level":"info","message":"Redis ready","source":"cache","context":{}}
+{"timestamp":"2025-06-22T07:22:28.396Z","level":"info","message":"Job queue started","source":"jobs","context":{}}
+{"timestamp":"2025-06-22T07:22:28.396Z","level":"info","message":"All services initialized successfully","source":"server","context":{}}
+{"timestamp":"2025-06-22T07:22:28.398Z","level":"info","message":"🚀 Conkero API server running","source":"server","context":{"url":"http://0.0.0.0:8000","environment":"development","docs":"http://0.0.0.0:8000/api-docs"}}
+{"timestamp":"2025-06-22T07:22:28.396Z","level":"info","message":"Job handler registered","source":"jobs","context":{"jobName":"send-email"}}
+{"timestamp":"2025-06-22T07:22:28.396Z","level":"info","message":"Job handler registered","source":"jobs","context":{"jobName":"generate-report"}}
+{"timestamp":"2025-06-22T07:22:28.396Z","level":"info","message":"Job handler registered","source":"jobs","context":{"jobName":"sync-user-data"}}
+{"timestamp":"2025-06-22T07:22:33.283Z","level":"info","message":"Request received","source":"server","context":{"requestId":"24607b2d-6256-4b8a-abd4-25c967caacdb","method":"GET","path":"/health","userAgent":"curl/8.12.1","ip":"unknown"}}
+{"timestamp":"2025-06-22T07:22:33.286Z","level":"info","message":"Database connection successful","source":"database","context":{}}
+{"timestamp":"2025-06-22T07:22:33.286Z","level":"error","message":"Job queue health check failed","source":"health","context":{"error":"boss.getQueues is not a function. (In 'boss.getQueues()', 'boss.getQueues' is undefined)","stack":"TypeError: boss.getQueues is not a function. (In 'boss.getQueues()', 'boss.getQueues' is undefined)\n    at healthCheck (/app/backend/routes/health.ts:57:33)\n    at processTicksAndRejections (native:7:39)"}}
+{"timestamp":"2025-06-22T07:22:33.286Z","level":"info","message":"Request completed","source":"server","context":{"requestId":"24607b2d-6256-4b8a-abd4-25c967caacdb","method":"GET","path":"/health","status":200,"duration":3}}
+{"timestamp":"2025-06-22T07:23:03.335Z","level":"info","message":"Request received","source":"server","context":{"requestId":"6c0395c1-0693-4c8f-a23a-0d65476c4c22","method":"GET","path":"/health","userAgent":"curl/8.12.1","ip":"unknown"}}
+{"timestamp":"2025-06-22T07:23:03.337Z","level":"info","message":"Database connection successful","source":"database","context":{}}
+{"timestamp":"2025-06-22T07:23:03.337Z","level":"error","message":"Job queue health check failed","source":"health","context":{"error":"boss.getQueues is not a function. (In 'boss.getQueues()', 'boss.getQueues' is undefined)","stack":"TypeError: boss.getQueues is not a function. (In 'boss.getQueues()', 'boss.getQueues' is undefined)\n    at healthCheck (/app/backend/routes/health.ts:57:33)\n    at processTicksAndRejections (native:7:39)"}}
+{"timestamp":"2025-06-22T07:23:03.337Z","level":"info","message":"Request completed","source":"server","context":{"requestId":"6c0395c1-0693-4c8f-a23a-0d65476c4c22","method":"GET","path":"/health","status":200,"duration":2}}
+{"timestamp":"2025-06-22T07:23:16.528Z","level":"error","message":"Unhandled rejection","source":"server","context":{"reason":{},"promise":{}}}
+{"timestamp":"2025-06-22T07:24:41.272Z","level":"info","message":"Received SIGTERM, shutting down gracefully...","source":"worker","context":{}}
+{"timestamp":"2025-06-22T07:25:15.726Z","level":"info","message":"Worker health check server started","source":"worker-health","context":{"port":8002}}
+{"timestamp":"2025-06-22T07:25:15.728Z","level":"info","message":"Starting worker service...","source":"worker","context":{}}
+{"timestamp":"2025-06-22T07:25:15.717Z","level":"info","message":"Connecting to database","source":"database","context":{"host":"db","database":"conkero","user":"postgres"}}
+{"timestamp":"2025-06-22T07:25:15.802Z","level":"info","message":"Starting worker service...","source":"worker","context":{}}
+{"timestamp":"2025-06-22T07:25:15.802Z","level":"info","message":"Worker health check server started","source":"worker-health","context":{"port":8002}}
+{"timestamp":"2025-06-22T07:25:15.798Z","level":"info","message":"Connecting to database","source":"database","context":{"host":"db","database":"conkero","user":"postgres"}}
+{"timestamp":"2025-06-22T07:25:15.813Z","level":"info","message":"pg-boss started successfully","source":"worker","context":{}}
+{"timestamp":"2025-06-22T07:25:15.814Z","level":"info","message":"Registered job handler","source":"worker","context":{"jobName":"send-email"}}
+{"timestamp":"2025-06-22T07:25:15.814Z","level":"info","message":"Registered job handler","source":"worker","context":{"jobName":"generate-report"}}
+{"timestamp":"2025-06-22T07:25:15.814Z","level":"info","message":"Registered job handler","source":"worker","context":{"jobName":"sync-user-data"}}
+{"timestamp":"2025-06-22T07:25:15.838Z","level":"info","message":"pg-boss started successfully","source":"worker","context":{}}
+{"timestamp":"2025-06-22T07:25:15.839Z","level":"info","message":"Registered job handler","source":"worker","context":{"jobName":"send-email"}}
+{"timestamp":"2025-06-22T07:25:15.839Z","level":"info","message":"Registered job handler","source":"worker","context":{"jobName":"generate-report"}}
+{"timestamp":"2025-06-22T07:25:15.839Z","level":"info","message":"Registered job handler","source":"worker","context":{"jobName":"sync-user-data"}}
+{"timestamp":"2025-06-22T07:25:32.568Z","level":"info","message":"Received SIGTERM, shutting down gracefully...","source":"worker","context":{}}
+{"timestamp":"2025-06-22T07:25:32.651Z","level":"info","message":"Connecting to database","source":"database","context":{"host":"db","database":"conkero","user":"postgres"}}
+{"timestamp":"2025-06-22T07:25:32.659Z","level":"info","message":"Initializing services...","source":"server","context":{}}
+{"timestamp":"2025-06-22T07:25:32.670Z","level":"info","message":"Database connection successful","source":"database","context":{}}
+{"timestamp":"2025-06-22T07:25:32.672Z","level":"info","message":"Redis connected","source":"cache","context":{}}
+{"timestamp":"2025-06-22T07:25:32.673Z","level":"info","message":"Redis ready","source":"cache","context":{}}
+{"timestamp":"2025-06-22T07:25:32.704Z","level":"info","message":"Job queue started","source":"jobs","context":{}}
+{"timestamp":"2025-06-22T07:25:32.704Z","level":"info","message":"All services initialized successfully","source":"server","context":{}}
+{"timestamp":"2025-06-22T07:25:32.705Z","level":"info","message":"🚀 Conkero API server running","source":"server","context":{"url":"http://0.0.0.0:8000","environment":"development","docs":"http://0.0.0.0:8000/api-docs"}}
+{"timestamp":"2025-06-22T07:25:32.704Z","level":"info","message":"Job handler registered","source":"jobs","context":{"jobName":"send-email"}}
+{"timestamp":"2025-06-22T07:25:32.704Z","level":"info","message":"Job handler registered","source":"jobs","context":{"jobName":"generate-report"}}
+{"timestamp":"2025-06-22T07:25:32.704Z","level":"info","message":"Job handler registered","source":"jobs","context":{"jobName":"sync-user-data"}}
+{"timestamp":"2025-06-22T07:25:32.859Z","level":"info","message":"Connecting to database","source":"database","context":{"host":"db","database":"conkero","user":"postgres"}}
+{"timestamp":"2025-06-22T07:25:32.868Z","level":"info","message":"Starting worker service...","source":"worker","context":{}}
+{"timestamp":"2025-06-22T07:25:32.868Z","level":"info","message":"Worker health check server started","source":"worker-health","context":{"port":8002}}
+{"timestamp":"2025-06-22T07:25:32.914Z","level":"info","message":"pg-boss started successfully","source":"worker","context":{}}
+{"timestamp":"2025-06-22T07:25:32.914Z","level":"info","message":"Registered job handler","source":"worker","context":{"jobName":"send-email"}}
+{"timestamp":"2025-06-22T07:25:32.914Z","level":"info","message":"Registered job handler","source":"worker","context":{"jobName":"generate-report"}}
+{"timestamp":"2025-06-22T07:25:32.914Z","level":"info","message":"Registered job handler","source":"worker","context":{"jobName":"sync-user-data"}}
+{"timestamp":"2025-06-22T07:25:32.922Z","level":"warn","message":"user_job_schedules table does not exist yet, skipping schedule loading","source":"worker","context":{}}
+{"timestamp":"2025-06-22T07:25:32.922Z","level":"info","message":"Worker service started successfully","source":"worker","context":{}}
+{"timestamp":"2025-06-22T07:25:37.598Z","level":"info","message":"Request received","source":"server","context":{"requestId":"6f8a97c8-eab7-4c1d-82f1-5f8f9bf4a4ee","method":"GET","path":"/health","userAgent":"curl/8.12.1","ip":"unknown"}}
+{"timestamp":"2025-06-22T07:25:37.601Z","level":"info","message":"Database connection successful","source":"database","context":{}}
+{"timestamp":"2025-06-22T07:25:37.601Z","level":"error","message":"Job queue health check failed","source":"health","context":{"error":"boss.getQueues is not a function. (In 'boss.getQueues()', 'boss.getQueues' is undefined)","stack":"TypeError: boss.getQueues is not a function. (In 'boss.getQueues()', 'boss.getQueues' is undefined)\n    at healthCheck (/app/backend/routes/health.ts:57:33)\n    at processTicksAndRejections (native:7:39)"}}
+{"timestamp":"2025-06-22T07:25:37.601Z","level":"info","message":"Request completed","source":"server","context":{"requestId":"6f8a97c8-eab7-4c1d-82f1-5f8f9bf4a4ee","method":"GET","path":"/health","status":200,"duration":3}}
+{"timestamp":"2025-06-22T07:25:43.727Z","level":"info","message":"Request received","source":"server","context":{"requestId":"d6596660-135d-4dc6-a7e8-6a5576fad4a2","method":"GET","path":"/health","userAgent":"curl/8.7.1","ip":"unknown"}}
+{"timestamp":"2025-06-22T07:25:43.731Z","level":"info","message":"Database connection successful","source":"database","context":{}}
+{"timestamp":"2025-06-22T07:25:43.733Z","level":"info","message":"Request completed","source":"server","context":{"requestId":"d6596660-135d-4dc6-a7e8-6a5576fad4a2","method":"GET","path":"/health","status":200,"duration":7}}
+{"timestamp":"2025-06-22T07:25:43.732Z","level":"error","message":"Job queue health check failed","source":"health","context":{"error":"boss.getQueues is not a function. (In 'boss.getQueues()', 'boss.getQueues' is undefined)","stack":"TypeError: boss.getQueues is not a function. (In 'boss.getQueues()', 'boss.getQueues' is undefined)\n    at healthCheck (/app/backend/routes/health.ts:57:33)\n    at processTicksAndRejections (native:7:39)"}}

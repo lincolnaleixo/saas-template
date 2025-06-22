@@ -7,6 +7,8 @@
 
 **Follow ALL guidelines from the documentation below strictly.**
 
+**Think hard**
+
 ---
 
 # Project Overview

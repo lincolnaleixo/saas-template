@@ -1,13 +1,72 @@
 # NEW FEATURE Implementation Request
 
-## Task Requirements
+## Task Requirements - Strictly follow the orders
 
 1. Create the necessary docker compose and docker images for the new backend created work. We should have auto reload on the related services
 2. Adjust the dev.sh script if needed
+3. After doing the tasks avode doo the End Flow tasks:
 
-**Follow ALL guidelines from the documentation below strictly.**
+3.1 Code Documentation
+- Add comprehensive comments to all new/modified code
+- Include JSDoc comments for functions and classes
+- Document complex logic and business rules
+- Add inline comments for non-obvious code sections
 
-**Think hard**
+3.2. Environment Configuration
+- Update `.env.example` with any new environment variables
+- Update `.env.local` with development values
+- Document new variables with descriptions and examples
+- Ensure all secrets have placeholder values in `.env.example`
+
+3.3. Scripts and Infrastructure
+- Update scripts in `./scripts/` folder if needed
+- Modify Docker Compose files if new services were added
+- Update Dockerfiles for any new dependencies
+- Ensure all ports are configurable via environment variables
+
+3.4. Code Quality - Linting
+- Run `bun run lint` (or appropriate linter)
+- Fix all ESLint/Prettier errors automatically
+- Manually resolve any remaining lint warnings
+- Ensure code follows project style guidelines
+
+3.5. Code Quality - TypeScript
+- Run `bun run typecheck` (or `tsc --noEmit`)
+- Fix all TypeScript compilation errors
+- Ensure proper types for all new code
+- Add type definitions for any external libraries
+
+3.6. Documentation Updates
+- Update `README.md` if needed
+- Update Guidelines docs if needed (`BACKEND-GUIDELINES.md`, `FRONTEND-GUIDELINES.md`, `GENERAL-GUIDELINES.md`) 
+- Update `FEATURES.md` if needed with:
+  - New feature descriptions
+  - Current implementation status
+  - Future roadmap updates
+
+3.7. Final Summary
+Provide a comprehensive summary including:
+- **What was implemented**: List of features/fixes with file locations
+- **What changed**: Modified files and their purposes
+- **How to test**: Step-by-step testing instructions
+- **Breaking changes**: Any changes that affect existing functionality
+- **Dependencies**: New packages or services added
+- **Migration steps**: Database or configuration changes needed
+
+3.8 🔍 Quality Gates
+
+- [ ] Code documentation
+- [ ] Environment variables are updated and documented
+- [ ] Scripts and Infrastructure are updated
+- [ ] No TypeScript errors
+- [ ] No linting errors
+- [ ] Documentation (README.md and FEATURES.md) is updated
+
+Attention! Strictly return the final summary and the each quality gate
+
+** Now Read ALL guidelines from the documentation and use them strictly based on the task(s) above**
+
+**Please think hard about the tasks**
 
 ---
 

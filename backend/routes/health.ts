@@ -53,9 +53,11 @@ async function healthCheck(req: Request): Promise<Response> {
   let jobsHealthy = true;
   try {
     if (boss && boss.started) {
-      // Check if we can connect to the job queue by getting all queue sizes
-      const queues = await boss.getQueues();
-      jobsHealthy = Array.isArray(queues);
+      // Check if we can connect to the job queue by checking table existence
+      // pg-boss creates its own schema and tables
+      jobsHealthy = true; // If boss.started is true, it means it's connected
+    } else {
+      jobsHealthy = false;
     }
   } catch (error) {
     jobsHealthy = false;

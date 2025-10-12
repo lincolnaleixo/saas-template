@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { ChevronRight, type LucideIcon } from "lucide-react"
 
 import {
@@ -18,6 +17,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import { NavigationAwareLink } from "@/components/navigation-aware-link"
 
 export function NavMain({
   items,
@@ -44,10 +44,10 @@ export function NavMain({
             return (
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton asChild tooltip={item.title}>
-                  <Link href={item.url} prefetch={true}>
+                  <NavigationAwareLink href={item.url} prefetch={true}>
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
-                  </Link>
+                  </NavigationAwareLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             );
@@ -73,9 +73,9 @@ export function NavMain({
                     {item.items?.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
                         <SidebarMenuSubButton asChild>
-                          <Link href={subItem.url} prefetch={true}>
+                          <NavigationAwareLink href={subItem.url} prefetch={true}>
                             <span>{subItem.title}</span>
-                          </Link>
+                          </NavigationAwareLink>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}

@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import {
   IconDots,
   IconFolder,
@@ -25,6 +24,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { NavigationAwareLink } from "@/components/navigation-aware-link"
 
 export function NavDocuments({
   items,
@@ -44,10 +44,10 @@ export function NavDocuments({
         {items.map((item) => (
           <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild>
-              <Link href={item.url} prefetch={true}>
+              <NavigationAwareLink href={item.url} prefetch={true}>
                 <item.icon />
                 <span>{item.name}</span>
-              </Link>
+              </NavigationAwareLink>
             </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

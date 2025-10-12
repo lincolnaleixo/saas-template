@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { type Icon } from "@tabler/icons-react"
 
 import {
@@ -11,6 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { NavigationAwareLink } from "@/components/navigation-aware-link"
 
 export function NavSecondary({
   items,
@@ -29,10 +29,10 @@ export function NavSecondary({
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild>
-                <Link href={item.url} prefetch={true}>
+                <NavigationAwareLink href={item.url} prefetch={true}>
                   <item.icon />
                   <span>{item.title}</span>
-                </Link>
+                </NavigationAwareLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

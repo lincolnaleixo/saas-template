@@ -8,7 +8,6 @@ import {
   Sparkles,
   UserCircle,
 } from "lucide-react"
-import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
 
 import {
@@ -31,6 +30,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { NavigationAwareLink } from "@/components/navigation-aware-link"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
@@ -99,25 +99,25 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="/billing" className="flex items-center gap-2">
+                <NavigationAwareLink href="/billing" className="flex items-center gap-2">
                   <Sparkles />
                   Upgrade to Pro
-                </Link>
+                </NavigationAwareLink>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="/profile" className="flex items-center gap-2">
+                <NavigationAwareLink href="/profile" className="flex items-center gap-2">
                   <UserCircle />
                   Profile
-                </Link>
+                </NavigationAwareLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/billing" className="flex items-center gap-2">
+                <NavigationAwareLink href="/billing" className="flex items-center gap-2">
                   <CreditCard />
                   Billing
-                </Link>
+                </NavigationAwareLink>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Bell />

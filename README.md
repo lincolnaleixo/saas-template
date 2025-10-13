@@ -25,6 +25,42 @@ A production-ready SaaS starter template with authentication, multi-tenancy, and
 
 ## Quick Start
 
+### Automated Setup (Recommended)
+
+The fastest way to get started is using our automated development setup script:
+
+```bash
+git clone <your-repo-url>
+cd saas-template
+npm install
+./scripts/setup-development.sh
+```
+
+This single script will:
+- ✅ Install all npm dependencies
+- ✅ Log you into Vercel CLI
+- ✅ Log you into Convex CLI
+- ✅ Create a new Convex development project
+- ✅ Generate an `AUTH_SECRET` automatically
+- ✅ Prompt you to configure Google OAuth credentials
+- ✅ (Optional) Set up Stripe CLI and configure billing
+- ✅ Create and link a Vercel project
+- ✅ Sync environment variables to Vercel
+
+**After the script completes**, you only need to:
+1. Add the OAuth redirect URI to Google Cloud Console: `http://localhost:3000/api/auth/callback/google`
+2. Run `npm run dev` to start the development server
+
+**Advanced Options:**
+- Run with `--ask` flag to be prompted for each step: `./scripts/setup-development.sh --ask`
+- By default, CLI credentials are stored locally in `.dev-cli/` directory
+
+---
+
+### Manual Setup (Alternative)
+
+If you prefer to set up manually or need more control:
+
 1. **Clone and install**
 
    ```bash
@@ -95,6 +131,37 @@ A production-ready SaaS starter template with authentication, multi-tenancy, and
 9. **Understand the first-user flow**
 
    - When a brand-new user signs in (and has no pending invite) the app automatically provisions a personal organization for them.
+
+10. **Customize the Theme (Recommended)**
+
+    After completing the initial setup, you should customize the application's design to match your brand:
+
+    1. **Gather Design Inspiration**
+       - Browse [Dribbble](https://dribbble.com/), [Behance](https://www.behance.net/), or similar design platforms
+       - Find SaaS applications or designs that match your vision
+       - Take screenshots of layouts, color schemes, navigation patterns, and UI components you like
+
+    2. **Prepare Visual References**
+       - Collect multiple screenshots showing:
+         - Overall layout and navigation structure
+         - Color palettes and gradients
+         - Typography styles
+         - Button and form designs
+         - Card and component styles
+         - Dashboard layouts
+         - Any unique design elements
+       - The more visual examples you provide, the better the AI can understand and replicate your desired theme
+
+    3. **Request Theme Changes**
+       - Share your design screenshots with your AI coding assistant (Claude Code, Cursor, Windsurf, etc.)
+       - Specify which aspects you want to adapt (colors, layouts, components, etc.)
+       - Ask the AI to update the theme to match your visual references
+       - The template uses Tailwind CSS and shadcn/ui components, making it easy to customize
+
+    **Example prompt for your AI assistant:**
+    > "I have screenshots from Dribbble showing a modern SaaS design with a dark mode and purple accent colors. I want to update our theme to match this design. The screenshots show: [describe what's in the images]. Can you help me update the colors, components, and overall styling to match this aesthetic?"
+
+    **Tip:** Providing multiple screenshots from different angles (landing page, dashboard, settings, etc.) helps ensure consistency across your entire application.
 
 ## Architecture
 

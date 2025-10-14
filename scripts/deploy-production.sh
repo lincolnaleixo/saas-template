@@ -507,19 +507,27 @@ main() {
     local vercel_output_file
     vercel_output_file=$(mktemp)
 
-    # Deploy with real-time output
-    if vercel --prod --yes 2>&1 | tee "$vercel_output_file"; then
-        print_success "Successfully deployed to Vercel!"
-    else
-        print_error "Vercel deployment failed"
-        rm -f "$vercel_output_file"
-        exit 1
-    fi
+    # Deploy with real-time output using set -o pipefail to catch errors
+    set +e  # Don't exit on error
+    (
+        set -o pipefail
+        vercel --prod --yes 2>&1 | tee "$vercel_output_file"
+    )
+    local vercel_exit=$?
+    set -e  # Re-enable exit on error
 
     # Read output for URL extraction
     local vercel_output
-    vercel_output=$(cat "$vercel_output_file")
+    vercel_output=$(cat "$vercel_output_file" 2>/dev/null || echo "")
     rm -f "$vercel_output_file"
+
+    echo ""
+
+    if [ $vercel_exit -ne 0 ]; then
+        print_error "Vercel deployment failed (exit code: $vercel_exit)"
+        exit 1
+    fi
+    print_success "Successfully deployed to Vercel!"
 
     echo ""
 

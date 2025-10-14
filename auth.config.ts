@@ -1,9 +1,16 @@
 import type { NextAuthConfig } from "next-auth";
 
+const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+
+if (!secret) {
+  throw new Error("Missing AUTH_SECRET. Set AUTH_SECRET or NEXTAUTH_SECRET in your environment.");
+}
+
 // Edge-compatible auth configuration for middleware
 export const authConfig = {
   trustHost: true,
   providers: [],
+  secret,
   callbacks: {
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;

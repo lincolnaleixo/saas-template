@@ -15,6 +15,9 @@ set -e  # Exit on any error
 CLI_SESSION_HOME=""
 NODE_HOMEDIR_OVERRIDE=""
 
+# Deployment mode (default: remote build)
+DEPLOY_MODE="remote"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -155,6 +158,14 @@ check_env_var() {
 # Main script
 main() {
     print_header "SaaS Template - Production Deployment Script"
+
+    # Show deployment mode
+    if [ "$DEPLOY_MODE" = "local" ]; then
+        print_info "Deployment mode: Local build + upload (faster)"
+    else
+        print_info "Deployment mode: Remote build on Vercel (default)"
+    fi
+    echo ""
 
     # Initialize CLI home (check for .dev-cli directory)
     prepare_cli_home
@@ -498,23 +509,61 @@ main() {
     print_success "Environment variable state saved to $ENV_STATE_FILE"
 
     # Step 4: Deploy to Vercel
-    print_header "Step 4: Deploying to Vercel"
+    if [ "$DEPLOY_MODE" = "local" ]; then
+        print_header "Step 4: Building Locally and Deploying to Vercel"
+    else
+        print_header "Step 4: Deploying to Vercel (Remote Build)"
+    fi
 
-    print_info "Building and deploying to production..."
-    echo ""
-
-    # Save output to temp file while showing it in real-time
     local vercel_output_file
     vercel_output_file=$(mktemp)
+    local vercel_exit=0
 
-    # Deploy with real-time output using set -o pipefail to catch errors
-    set +e  # Don't exit on error
-    (
-        set -o pipefail
-        vercel --prod --yes 2>&1 | tee "$vercel_output_file"
-    )
-    local vercel_exit=$?
-    set -e  # Re-enable exit on error
+    if [ "$DEPLOY_MODE" = "local" ]; then
+        # Local build mode
+        print_info "Building application locally..."
+        echo ""
+
+        # Build locally with production environment
+        set +e
+        npm run build 2>&1 | tee "$vercel_output_file"
+        local build_exit=$?
+        set -e
+
+        if [ $build_exit -ne 0 ]; then
+            print_error "Local build failed (exit code: $build_exit)"
+            rm -f "$vercel_output_file"
+            exit 1
+        fi
+        print_success "Local build completed successfully!"
+        echo ""
+
+        print_info "Uploading built artifacts to Vercel..."
+        echo ""
+
+        # Deploy with --prebuilt flag
+        set +e
+        (
+            set -o pipefail
+            vercel deploy --prebuilt --prod 2>&1 | tee -a "$vercel_output_file"
+        )
+        vercel_exit=$?
+        set -e
+
+    else
+        # Remote build mode (default)
+        print_info "Building and deploying on Vercel servers..."
+        echo ""
+
+        # Deploy with real-time output using set -o pipefail to catch errors
+        set +e
+        (
+            set -o pipefail
+            vercel --prod --yes 2>&1 | tee "$vercel_output_file"
+        )
+        vercel_exit=$?
+        set -e
+    fi
 
     # Read output for URL extraction
     local vercel_output
@@ -580,6 +629,11 @@ main() {
     print_header "Deployment Complete! 🎉"
 
     print_success "Your application has been deployed successfully!"
+    if [ "$DEPLOY_MODE" = "local" ]; then
+        print_info "Deployment method: Local build (faster)"
+    else
+        print_info "Deployment method: Remote build on Vercel"
+    fi
     echo ""
     print_info "Production URL: $FINAL_URL"
     print_info "Convex Dashboard: https://dashboard.convex.dev"
@@ -639,5 +693,54 @@ main() {
     print_success "Deployment script completed!"
 }
 
+# Parse command-line arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --local)
+                DEPLOY_MODE="local"
+                shift
+                ;;
+            --remote)
+                DEPLOY_MODE="remote"
+                shift
+                ;;
+            --help|-h)
+                cat <<'USAGE'
+Usage: ./scripts/deploy-production.sh [OPTIONS]
+
+Options:
+  --local     Build locally and upload artifacts (faster, ~30s)
+  --remote    Build on Vercel servers (default, more reproducible)
+  --help, -h  Show this help message
+
+Examples:
+  ./scripts/deploy-production.sh           # Remote build (default)
+  ./scripts/deploy-production.sh --local   # Local build (faster)
+
+Remote build (default):
+  - Vercel builds your app on their servers
+  - More reproducible, same environment every time
+  - Uses Vercel environment variables during build
+  - Recommended for production releases
+
+Local build (--local):
+  - Builds on your machine, uploads built files
+  - Much faster (~30s vs 2-3 minutes)
+  - Uses your local .env.local during build
+  - Good for quick iterations and testing
+USAGE
+                exit 0
+                ;;
+            *)
+                echo "Unknown option: $1"
+                echo "Use --help for usage information"
+                exit 1
+                ;;
+        esac
+    done
+}
+
 # Run main function
-main "$@"
+parse_args "$@"
+main

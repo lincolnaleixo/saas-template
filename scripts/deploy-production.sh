@@ -521,12 +521,12 @@ main() {
 
     if [ "$DEPLOY_MODE" = "local" ]; then
         # Local build mode
-        print_info "Building application locally..."
+        print_info "Building application locally with Vercel..."
         echo ""
 
-        # Build locally with production environment
+        # Build locally with vercel build (creates .vercel/output)
         set +e
-        npm run build 2>&1 | tee "$vercel_output_file"
+        vercel build 2>&1 | tee "$vercel_output_file"
         local build_exit=$?
         set -e
 

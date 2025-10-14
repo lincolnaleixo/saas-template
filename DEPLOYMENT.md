@@ -38,7 +38,7 @@
     38	
     39	### `npm run deploy` (Fastest)
     40	**What it does:**
-    41	1. Runs `npm run build` locally
+    41	1. Runs `vercel build` locally (creates .vercel/output)
     42	2. Uploads built files with `vercel deploy --prebuilt --prod`
     43	
     44	**When to use:**

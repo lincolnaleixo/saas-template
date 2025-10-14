@@ -45,9 +45,9 @@ export default function LoginPage() {
           <LoginForm />
           {isWaitlistEnabled && (
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
-              <p className="font-medium text-primary">We're in private beta!</p>
+              <p className="font-medium text-primary">We&apos;re in private beta!</p>
               <p className="mt-1">
-                Sign in to join our waitlist. We're onboarding users carefully and will approve you
+                Sign in to join our waitlist. We&apos;re onboarding users carefully and will approve you
                 as soon as possible.
               </p>
             </div>

@@ -5,6 +5,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { getCanonicalBaseUrl } from "@/lib/env";
+import { authConfig } from "@/auth.config";
 
 const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -13,7 +14,7 @@ const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 getCanonicalBaseUrl();
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  trustHost: true,
+  ...authConfig,
   adapter: ConvexAdapter(process.env.NEXT_PUBLIC_CONVEX_URL!),
   providers: [
     Google({
@@ -22,12 +23,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    authorized({ auth }) {
-      if (!auth?.user) {
-        return false;
-      }
-      return true;
-    },
+    ...authConfig.callbacks,
     async jwt({ token, user }) {
       if (user) {
         token.superRole = user.superRole ?? null;

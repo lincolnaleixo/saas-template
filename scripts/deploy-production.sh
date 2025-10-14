@@ -11,6 +11,10 @@
 
 set -e  # Exit on any error
 
+# CLI session management (matches setup-development.sh)
+CLI_SESSION_HOME=""
+NODE_HOMEDIR_OVERRIDE=""
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -46,6 +50,79 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Prepare CLI home directory (check for .dev-cli)
+prepare_cli_home() {
+    local existing_dir="$PWD/.dev-cli"
+    if [ -d "$existing_dir" ]; then
+        CLI_SESSION_HOME="$existing_dir"
+        print_info "Using project-local CLI credentials from $CLI_SESSION_HOME"
+    fi
+}
+
+# Create node homedir override script
+ensure_node_override() {
+    if [ -z "$CLI_SESSION_HOME" ]; then
+        NODE_HOMEDIR_OVERRIDE=""
+        return
+    fi
+    local override_path="$CLI_SESSION_HOME/.config/node-homedir-override.js"
+    if [ ! -f "$override_path" ]; then
+        cat <<'EOF' > "$override_path"
+const os = require("os");
+const forcedHome =
+  process.env.CLI_OVERRIDE_HOME ||
+  process.env.CONVEX_CLI_HOME ||
+  process.env.HOME;
+
+if (forcedHome && typeof forcedHome === "string") {
+  Object.defineProperty(os, "homedir", {
+    value: () => forcedHome,
+    configurable: true,
+  });
+}
+EOF
+    fi
+    NODE_HOMEDIR_OVERRIDE="$override_path"
+}
+
+# Build NODE_OPTIONS with override
+node_options_with_override() {
+    local existing="$1"
+    if [ -z "$NODE_HOMEDIR_OVERRIDE" ]; then
+        echo "$existing"
+        return
+    fi
+    if [ -z "$existing" ]; then
+        echo "--require $NODE_HOMEDIR_OVERRIDE"
+        return
+    fi
+    case " $existing " in
+        *" --require $NODE_HOMEDIR_OVERRIDE "*)
+            echo "$existing"
+            ;;
+        *)
+            echo "$existing --require $NODE_HOMEDIR_OVERRIDE"
+            ;;
+    esac
+}
+
+# Convex CLI wrapper that uses project-local credentials if available
+convex_cli() {
+    if [ -n "$CLI_SESSION_HOME" ]; then
+        ensure_node_override
+        local node_opts
+        node_opts=$(node_options_with_override "${NODE_OPTIONS:-}")
+        HOME="$CLI_SESSION_HOME" \
+            XDG_CONFIG_HOME="$CLI_SESSION_HOME/.config" \
+            CLI_OVERRIDE_HOME="$CLI_SESSION_HOME" \
+            CONVEX_CLI_HOME="$CLI_SESSION_HOME" \
+            NODE_OPTIONS="$node_opts" \
+            npx convex "$@"
+    else
+        npx convex "$@"
+    fi
+}
+
 # Check if file exists
 check_file() {
     if [ ! -f "$1" ]; then
@@ -79,6 +156,9 @@ check_env_var() {
 main() {
     print_header "SaaS Template - Production Deployment Script"
 
+    # Initialize CLI home (check for .dev-cli directory)
+    prepare_cli_home
+
     # Step 0: Check prerequisites
     print_header "Step 0: Checking Prerequisites"
 
@@ -110,12 +190,34 @@ main() {
         print_success "Logged in to Vercel as: $(vercel whoami)"
     fi
 
-    # Check Convex CLI
-    if ! command_exists convex; then
+    # Check Convex CLI (via npx)
+    if ! command_exists npx; then
+        print_error "npx not found. Install Node.js and npm"
+        exit 1
+    fi
+    if ! npx convex --version &>/dev/null; then
         print_error "Convex CLI not found. Run: npm install"
         exit 1
     fi
     print_success "Convex CLI installed"
+
+    # Check if logged in to Convex by checking for config file
+    print_info "Checking Convex authentication..."
+    local convex_config=""
+    if [ -n "$CLI_SESSION_HOME" ]; then
+        convex_config="$CLI_SESSION_HOME/.convex/config.json"
+    else
+        convex_config="$HOME/.convex/config.json"
+    fi
+
+    if [ ! -f "$convex_config" ] || [ ! -s "$convex_config" ]; then
+        print_error "Not authenticated with Convex"
+        print_info "Convex config not found at: $convex_config"
+        print_info "Please run: ./scripts/setup-development.sh"
+        print_info "Or manually authenticate with: npx convex dev"
+        exit 1
+    fi
+    print_success "Authenticated with Convex"
 
     # Verify required environment variables in .env.local
     print_info "Checking required environment variables in .env.local..."
@@ -143,16 +245,36 @@ main() {
     print_header "Step 1: Deploying Convex to Production"
 
     print_info "Deploying Convex functions..."
-    if npx convex deploy --yes; then
-        print_success "Convex deployed successfully"
-    else
+
+    # Capture deploy output to extract the production URL
+    local deploy_output
+    deploy_output=$(convex_cli deploy --yes 2>&1)
+    local deploy_exit=$?
+
+    # Show the output to user
+    echo "$deploy_output"
+
+    if [ $deploy_exit -ne 0 ]; then
         print_error "Convex deployment failed"
         exit 1
     fi
+    print_success "Convex deployed successfully"
 
-    # Get production Convex URL
+    # Get production Convex URL from the deploy output
     print_info "Detecting production Convex URL..."
-    PROD_CONVEX_URL=$(npx convex env get CONVEX_URL 2>/dev/null || echo "")
+
+    # Extract URL from deploy output (looks for "Deployed Convex functions to https://...")
+    PROD_CONVEX_URL=$(echo "$deploy_output" | grep -o 'https://[^[:space:]]*\.convex\.cloud' | head -1 || echo "")
+
+    # If not found in output, try convex.json
+    if [ -z "$PROD_CONVEX_URL" ] && [ -f "convex.json" ]; then
+        PROD_CONVEX_URL=$(python3 -c "import json; print(json.load(open('convex.json')).get('deployment', ''))" 2>/dev/null || echo "")
+    fi
+
+    # If still not found, check .env.local
+    if [ -z "$PROD_CONVEX_URL" ]; then
+        PROD_CONVEX_URL=$(load_env_var 'NEXT_PUBLIC_CONVEX_URL')
+    fi
 
     if [ -z "$PROD_CONVEX_URL" ]; then
         print_warning "Could not auto-detect Convex URL"
@@ -225,47 +347,63 @@ main() {
         fi
     done
 
-    # Step 4: Get Vercel deployment URL
-    print_header "Step 4: Getting Production URL"
+    # Step 4: Deploy to Vercel (moved before getting URL)
+    print_header "Step 4: Deploying to Vercel"
 
-    print_info "Retrieving Vercel production domain..."
-    VERCEL_DOMAIN=$(vercel inspect --prod 2>/dev/null | grep "Production:" | awk '{print $2}' || echo "")
+    print_info "Building and deploying to production..."
 
-    if [ -z "$VERCEL_DOMAIN" ]; then
-        print_warning "Could not auto-detect Vercel domain"
-        print_info "You can find it in your Vercel dashboard"
-        read -p "Enter your Vercel production domain (e.g., your-app.vercel.app): " VERCEL_DOMAIN
+    # Capture Vercel deploy output to extract domain
+    local vercel_output
+    vercel_output=$(vercel --prod --yes 2>&1)
+    local vercel_exit=$?
+
+    # Show output to user
+    echo "$vercel_output"
+
+    if [ $vercel_exit -ne 0 ]; then
+        print_error "Vercel deployment failed"
+        exit 1
+    fi
+    print_success "Successfully deployed to Vercel!"
+
+    # Step 5: Get Production URL from deployment
+    print_header "Step 5: Configuring Production URLs"
+
+    print_info "Detecting Vercel production domain..."
+
+    # Extract production URL from Vercel output (looks for "Production: https://...")
+    FINAL_URL=$(echo "$vercel_output" | grep -i "production:" | grep -o 'https://[^[:space:]]*' | head -1 || echo "")
+
+    # Alternative: try to extract from "Deployed to production" line
+    if [ -z "$FINAL_URL" ]; then
+        FINAL_URL=$(echo "$vercel_output" | grep -o 'https://[^[:space:]]*\.vercel\.app' | head -1 || echo "")
     fi
 
-    if [ -n "$VERCEL_DOMAIN" ]; then
-        FULL_URL="https://${VERCEL_DOMAIN}"
-        print_success "Production URL: $FULL_URL"
+    # Try vercel inspect as fallback
+    if [ -z "$FINAL_URL" ]; then
+        FINAL_URL=$(vercel inspect --prod 2>/dev/null | grep "url:" | head -1 | awk '{print $2}' || echo "")
+    fi
 
-        # Update NEXTAUTH_URL if not set
+    if [ -z "$FINAL_URL" ]; then
+        print_warning "Could not auto-detect Vercel domain"
+        print_info "You can find it in your Vercel dashboard"
+        read -p "Enter your Vercel production URL (e.g., https://your-app.vercel.app): " FINAL_URL
+    else
+        print_success "Production URL: $FINAL_URL"
+    fi
+
+    # Update NEXTAUTH_URL and NEXT_PUBLIC_APP_URL if not already set
+    if [ -n "$FINAL_URL" ]; then
         if [ -z "$(load_env_var 'NEXTAUTH_URL')" ]; then
             print_info "Setting NEXTAUTH_URL to production domain..."
-            set_vercel_env "NEXTAUTH_URL" "$FULL_URL" "production"
+            set_vercel_env "NEXTAUTH_URL" "$FINAL_URL" "production"
         fi
 
         if [ -z "$(load_env_var 'NEXT_PUBLIC_APP_URL')" ]; then
             print_info "Setting NEXT_PUBLIC_APP_URL to production domain..."
-            set_vercel_env "NEXT_PUBLIC_APP_URL" "$FULL_URL" "production"
+            set_vercel_env "NEXT_PUBLIC_APP_URL" "$FINAL_URL" "production"
         fi
     fi
-
-    # Step 5: Deploy to Vercel
-    print_header "Step 5: Deploying to Vercel"
-
-    print_info "Building and deploying to production..."
-    if vercel --prod --yes; then
-        print_success "Successfully deployed to Vercel!"
-    else
-        print_error "Vercel deployment failed"
-        exit 1
-    fi
-
-    # Get final production URL
-    FINAL_URL=$(vercel inspect --prod 2>/dev/null | grep "URL:" | head -1 | awk '{print $2}' || echo "$FULL_URL")
 
     # Step 6: Post-deployment instructions
     print_header "Deployment Complete! 🎉"
@@ -274,7 +412,7 @@ main() {
     echo ""
     print_info "Production URL: $FINAL_URL"
     print_info "Convex Dashboard: https://dashboard.convex.dev"
-    print_info "Vercel Dashboard: https://vercel.com"
+    print_info "Vercel Dashboard: https://vercel.com/dashboard"
 
     echo ""
     print_header "⚠️  Important: Manual Steps Required"
@@ -287,14 +425,22 @@ main() {
     echo "   → Wait 5-10 minutes for Google to propagate changes"
 
     echo ""
-    echo "2. (Optional) If using Stripe, set up production webhooks:"
+    echo "2. (Optional) Add Custom Domain:"
+    echo "   → Go to: https://vercel.com/dashboard"
+    echo "   → Select your project → Settings → Domains"
+    echo "   → Add your custom domain (e.g., example.com)"
+    echo "   → Update Google OAuth redirect URI with your custom domain"
+    echo "   → Update Stripe webhooks if using custom domain"
+
+    echo ""
+    echo "3. (Optional) If using Stripe, set up production webhooks:"
     echo "   → Go to: https://dashboard.stripe.com/webhooks"
     echo "   → Add endpoint: ${FINAL_URL}/api/webhooks/stripe"
     echo "   → Select events: customer.subscription.* (created, updated, deleted)"
-    echo "   → Copy webhook secret and add to Vercel as STRIPE_WEBHOOK_SECRET"
+    echo "   → Copy webhook secret and update Vercel env: STRIPE_WEBHOOK_SECRET"
 
     echo ""
-    echo "3. Test your deployment:"
+    echo "4. Test your deployment:"
     echo "   → Visit: $FINAL_URL"
     echo "   → Click login and sign in with Google"
     echo "   → Verify organization creation works"

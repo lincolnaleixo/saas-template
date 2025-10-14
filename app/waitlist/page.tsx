@@ -74,7 +74,7 @@ export default function WaitlistPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <Mail className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
-                      <span>You'll receive an email when you're approved</span>
+                      <span>You&apos;ll receive an email when you&apos;re approved</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
@@ -84,9 +84,9 @@ export default function WaitlistPage() {
                 </div>
 
                 <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-sm">
-                  <p className="font-medium text-primary">We're launching soon!</p>
+                  <p className="font-medium text-primary">We&apos;re launching soon!</p>
                   <p className="mt-1 text-muted-foreground">
-                    We're currently in private beta and onboarding users carefully to ensure the
+                    We&apos;re currently in private beta and onboarding users carefully to ensure the
                     best possible experience. Thank you for your patience!
                   </p>
                 </div>
@@ -109,7 +109,7 @@ export default function WaitlistPage() {
             <div className="space-y-4">
               <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
                 <p>
-                  We're currently unable to provide access at this time. If you believe this is an
+                  We&apos;re currently unable to provide access at this time. If you believe this is an
                   error, please contact our support team.
                 </p>
               </div>

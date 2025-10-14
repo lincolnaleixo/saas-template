@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  Suspense,
   type ReactNode,
 } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -22,7 +23,7 @@ const NavigationProgressContext = createContext<NavigationProgressContextValue |
   undefined
 );
 
-export function NavigationProgressProvider({
+function NavigationProgressProviderInner({
   children,
 }: {
   children: ReactNode;
@@ -80,6 +81,37 @@ export function NavigationProgressProvider({
       endNavigation,
     }),
     [endNavigation, isNavigating, startNavigation]
+  );
+
+  return (
+    <NavigationProgressContext.Provider value={value}>
+      {children}
+    </NavigationProgressContext.Provider>
+  );
+}
+
+export function NavigationProgressProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  return (
+    <Suspense fallback={<NavigationProgressFallback>{children}</NavigationProgressFallback>}>
+      <NavigationProgressProviderInner>
+        {children}
+      </NavigationProgressProviderInner>
+    </Suspense>
+  );
+}
+
+function NavigationProgressFallback({ children }: { children: ReactNode }) {
+  const value = useMemo(
+    () => ({
+      isNavigating: false,
+      startNavigation: () => {},
+      endNavigation: () => {},
+    }),
+    []
   );
 
   return (

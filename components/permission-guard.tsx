@@ -25,9 +25,7 @@ export function PermissionGuard({ page, children }: PermissionGuardProps) {
 
   useEffect(() => {
     if (sessionStatus === "unauthenticated") {
-      const search = typeof window !== "undefined" ? window.location.search : "";
-      const callbackUrl = `${pathname}${search}`;
-      router.replace(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+      router.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
     }
   }, [sessionStatus, router, pathname]);
 

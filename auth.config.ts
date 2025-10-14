@@ -11,6 +11,7 @@ export const authConfig = {
   trustHost: true,
   providers: [],
   secret,
+  debug: process.env.NODE_ENV !== "production",
   callbacks: {
     authorized({ auth, request }) {
       const { pathname } = request.nextUrl;

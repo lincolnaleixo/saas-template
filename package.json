@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "run-p dev:next dev:convex stripe:listen",
+    "dev": "run-p dev:next dev:convex stripe:listen open:browser",
     "dev:next": "next dev --turbopack",
     "dev:convex": "convex dev",
+    "open:browser": "node scripts/open-browser.mjs",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",

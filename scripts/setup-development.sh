@@ -929,6 +929,36 @@ run_convex_setup() {
   if [ -n "$CLI_SESSION_HOME" ]; then
     print_info "Convex credentials stored at $CLI_SESSION_HOME/.convex/config.json"
   fi
+
+  # Prompt for Convex Admin Key (needed for production)
+  echo ""
+  print_header "Convex Admin Key (for production deployment)"
+  print_info "The Convex Admin Key is required for NextAuth in production"
+  print_info "You can get it from: https://dashboard.convex.dev"
+  print_info "→ Select your deployment → Settings → Deploy keys"
+  print_info "→ Copy the 'Deploy key' value"
+  echo ""
+
+  if prompt_confirm "Do you want to add the Convex Admin Key now?" "n"; then
+    read -p "Enter your Convex Admin Key: " convex_admin_key
+    if [ -n "$convex_admin_key" ]; then
+      if grep -q "^CONVEX_ADMIN_KEY=" .env.local 2>/dev/null; then
+        # Update existing
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+          sed -i '' "s|^CONVEX_ADMIN_KEY=.*|CONVEX_ADMIN_KEY=$convex_admin_key|" .env.local
+        else
+          sed -i "s|^CONVEX_ADMIN_KEY=.*|CONVEX_ADMIN_KEY=$convex_admin_key|" .env.local
+        fi
+      else
+        # Add new
+        echo "CONVEX_ADMIN_KEY=$convex_admin_key" >> .env.local
+      fi
+      print_success "Convex Admin Key saved to .env.local"
+    fi
+  else
+    print_info "Skipping Convex Admin Key. You can add it later to .env.local"
+    print_info "It will be required when deploying to production"
+  fi
 }
 
 main() {

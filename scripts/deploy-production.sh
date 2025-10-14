@@ -317,12 +317,42 @@ main() {
         print_success "Set $var_name"
     }
 
+    # Get Convex Admin Key
+    print_info "Checking for Convex Admin Key..."
+    CONVEX_ADMIN_KEY=$(load_env_var 'CONVEX_ADMIN_KEY')
+
+    if [ -z "$CONVEX_ADMIN_KEY" ]; then
+        echo ""
+        print_warning "CONVEX_ADMIN_KEY not found in .env.local"
+        print_info "The Convex Admin Key is required for NextAuth integration"
+        print_info "You can find it in your Convex Dashboard:"
+        print_info "→ https://dashboard.convex.dev"
+        print_info "→ Select your deployment → Settings → Deploy keys"
+        print_info "→ Copy the 'Deploy key' value"
+        echo ""
+        read -p "Enter your Convex Admin Key (or press Enter to skip): " CONVEX_ADMIN_KEY
+
+        # Save to .env.local for future use
+        if [ -n "$CONVEX_ADMIN_KEY" ]; then
+            echo "CONVEX_ADMIN_KEY=$CONVEX_ADMIN_KEY" >> .env.local
+            print_success "Saved CONVEX_ADMIN_KEY to .env.local"
+        fi
+    else
+        print_success "Found CONVEX_ADMIN_KEY in .env.local"
+    fi
+
     # Core required variables
     print_info "Setting core environment variables..."
     set_vercel_env "AUTH_SECRET" "$(load_env_var 'AUTH_SECRET')" "production"
     set_vercel_env "GOOGLE_CLIENT_ID" "$(load_env_var 'GOOGLE_CLIENT_ID')" "production"
     set_vercel_env "GOOGLE_CLIENT_SECRET" "$(load_env_var 'GOOGLE_CLIENT_SECRET')" "production"
     set_vercel_env "NEXT_PUBLIC_CONVEX_URL" "$PROD_CONVEX_URL" "production"
+
+    if [ -n "$CONVEX_ADMIN_KEY" ]; then
+        set_vercel_env "CONVEX_ADMIN_KEY" "$CONVEX_ADMIN_KEY" "production"
+    else
+        print_warning "Skipping CONVEX_ADMIN_KEY (not provided)"
+    fi
 
     # Optional variables
     print_info "Setting optional environment variables (if present)..."
@@ -392,17 +422,15 @@ main() {
         print_success "Production URL: $FINAL_URL"
     fi
 
-    # Update NEXTAUTH_URL and NEXT_PUBLIC_APP_URL if not already set
+    # Always set NEXTAUTH_URL and NEXT_PUBLIC_APP_URL to production domain
     if [ -n "$FINAL_URL" ]; then
-        if [ -z "$(load_env_var 'NEXTAUTH_URL')" ]; then
-            print_info "Setting NEXTAUTH_URL to production domain..."
-            set_vercel_env "NEXTAUTH_URL" "$FINAL_URL" "production"
-        fi
+        print_info "Setting NEXTAUTH_URL to production domain..."
+        set_vercel_env "NEXTAUTH_URL" "$FINAL_URL" "production"
 
-        if [ -z "$(load_env_var 'NEXT_PUBLIC_APP_URL')" ]; then
-            print_info "Setting NEXT_PUBLIC_APP_URL to production domain..."
-            set_vercel_env "NEXT_PUBLIC_APP_URL" "$FINAL_URL" "production"
-        fi
+        print_info "Setting NEXT_PUBLIC_APP_URL to production domain..."
+        set_vercel_env "NEXT_PUBLIC_APP_URL" "$FINAL_URL" "production"
+
+        print_success "Production URLs configured in Vercel"
     fi
 
     # Step 6: Post-deployment instructions

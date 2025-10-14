@@ -10,7 +10,7 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "deploy": "vercel build && vercel deploy --prebuilt --prod",
+    "deploy": "vercel build --yes && vercel deploy --prebuilt --prod",
     "deploy:local": "bash scripts/deploy-production.sh --local",
     "deploy:remote": "bash scripts/deploy-production.sh --remote",
     "deploy:prod": "bash scripts/deploy-production.sh",

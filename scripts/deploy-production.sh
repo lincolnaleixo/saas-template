@@ -524,9 +524,9 @@ main() {
         print_info "Building application locally with Vercel..."
         echo ""
 
-        # Build locally with vercel build (creates .vercel/output)
+        # Build locally with vercel build for production (creates .vercel/output)
         set +e
-        vercel build 2>&1 | tee "$vercel_output_file"
+        vercel build --prod 2>&1 | tee "$vercel_output_file"
         local build_exit=$?
         set -e
 

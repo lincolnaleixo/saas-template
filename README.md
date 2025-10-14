@@ -38,18 +38,21 @@ npm install
 
 This single script will:
 - ✅ Install all npm dependencies
-- ✅ Log you into Vercel CLI
-- ✅ Log you into Convex CLI
+- ✅ Log you into Vercel CLI (browser opens automatically)
+- ✅ Log you into Convex CLI (browser opens automatically)
 - ✅ Create a new Convex development project
 - ✅ Generate an `AUTH_SECRET` automatically
 - ✅ Prompt you to configure Google OAuth credentials
+- ✅ (Optional) Configure Resend API for email invitations
 - ✅ (Optional) Set up Stripe CLI and configure billing
 - ✅ Create and link a Vercel project
 - ✅ Sync environment variables to Vercel
+- ✅ Display clear post-setup instructions
 
 **After the script completes**, you only need to:
 1. Add the OAuth redirect URI to Google Cloud Console: `http://localhost:3000/api/auth/callback/google`
-2. Run `npm run dev` to start the development server
+2. (Optional) If using Resend: Verify your domain at https://resend.com/domains or use test email `onboarding@resend.dev`
+3. Run `npm run dev` to start the development server
 
 **Advanced Options:**
 - Run with `--ask` flag to be prompted for each step: `./scripts/setup-development.sh --ask`

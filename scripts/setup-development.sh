@@ -451,17 +451,13 @@ ensure_convex_logged_in() {
   init_project_names
   local device_name="$PROJECT_DEV_NAME"
 
-  # Run convex login with explicit login-flow to avoid prompts
+  # Run convex login - let it handle browser opening automatically
   print_info "Running 'npx convex login'..."
 
   set +e
-  if [ "$PROMPT_MODE" = "auto" ]; then
-    # Use poll mode to automatically poll for authentication without prompting
-    convex_cli login --device-name "$device_name" --login-flow poll --accept-opt-ins
-  else
-    # Interactive mode - use auto flow which will prompt if needed
-    convex_cli login --device-name "$device_name" --login-flow auto
-  fi
+  # Use 'auto' mode which detects the environment and opens browser automatically
+  # This works in interactive terminals without prompting
+  convex_cli login --device-name "$device_name" --accept-opt-ins
   local login_exit=$?
   set -e
 
@@ -1090,29 +1086,29 @@ USAGE
 
   print_header "IMPORTANT: Complete these final steps"
 
-  echo "${YELLOW}1. Configure Google OAuth Redirect URI${NC}"
-  echo "   ${BLUE}→${NC} Open: ${BLUE}https://console.cloud.google.com/apis/credentials${NC}"
-  echo "   ${BLUE}→${NC} Find your OAuth client and add this redirect URI:"
-  echo "   ${GREEN}http://localhost:3000/api/auth/callback/google${NC}"
+  echo -e "${YELLOW}1. Configure Google OAuth Redirect URI${NC}"
+  echo -e "   ${BLUE}→${NC} Open: ${BLUE}https://console.cloud.google.com/apis/credentials${NC}"
+  echo -e "   ${BLUE}→${NC} Find your OAuth client and add this redirect URI:"
+  echo -e "   ${GREEN}http://localhost:3000/api/auth/callback/google${NC}"
   echo
 
   # Check if Resend was configured
   local resend_key
   resend_key=$(get_env_value ".env.local" "RESEND_API_KEY")
   if [ -n "$resend_key" ]; then
-    echo "${YELLOW}2. Configure Resend Email Domain (for invitations)${NC}"
-    echo "   ${BLUE}→${NC} Open: ${BLUE}https://resend.com/domains${NC}"
-    echo "   ${BLUE}→${NC} Add and verify your domain to send emails"
-    echo "   ${BLUE}→${NC} OR use the test email (onboarding@resend.dev) which only sends to your account email"
-    echo "   ${BLUE}→${NC} Update EMAIL_FROM in .env.local with your verified domain email"
+    echo -e "${YELLOW}2. Configure Resend Email Domain (for invitations)${NC}"
+    echo -e "   ${BLUE}→${NC} Open: ${BLUE}https://resend.com/domains${NC}"
+    echo -e "   ${BLUE}→${NC} Add and verify your domain to send emails"
+    echo -e "   ${BLUE}→${NC} OR use the test email (onboarding@resend.dev) which only sends to your account email"
+    echo -e "   ${BLUE}→${NC} Update EMAIL_FROM in .env.local with your verified domain email"
     echo
   fi
 
   print_header "Start Developing"
   echo "Run the development server:"
-  echo "  ${GREEN}npm run dev${NC}"
+  echo -e "  ${GREEN}npm run dev${NC}"
   echo
-  echo "Then open: ${BLUE}http://localhost:3000${NC}"
+  echo -e "Then open: ${BLUE}http://localhost:3000${NC}"
   echo
 
   print_info "Additional notes:"

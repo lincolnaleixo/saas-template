@@ -399,7 +399,7 @@ main() {
         print_info "Opening Convex Dashboard in your browser..."
         print_info "Follow these steps to get your Deploy Key:"
         print_info "  1. Select your project"
-        print_info "  2. Click on 'Production' environment"
+        print_info "  2. Change to 'Production' environment"
         print_info "  3. Go to Settings → URL & Deploy Key"
         print_info "  4. Under 'Deploy Keys' section"
         print_info "  5. Click 'Generate Production Deploy Key' if needed"
@@ -501,20 +501,27 @@ main() {
     print_header "Step 4: Deploying to Vercel"
 
     print_info "Building and deploying to production..."
+    echo ""
 
-    # Capture Vercel deploy output to extract domain
-    local vercel_output
-    vercel_output=$(vercel --prod --yes 2>&1)
-    local vercel_exit=$?
+    # Save output to temp file while showing it in real-time
+    local vercel_output_file
+    vercel_output_file=$(mktemp)
 
-    # Show output to user
-    echo "$vercel_output"
-
-    if [ $vercel_exit -ne 0 ]; then
+    # Deploy with real-time output
+    if vercel --prod --yes 2>&1 | tee "$vercel_output_file"; then
+        print_success "Successfully deployed to Vercel!"
+    else
         print_error "Vercel deployment failed"
+        rm -f "$vercel_output_file"
         exit 1
     fi
-    print_success "Successfully deployed to Vercel!"
+
+    # Read output for URL extraction
+    local vercel_output
+    vercel_output=$(cat "$vercel_output_file")
+    rm -f "$vercel_output_file"
+
+    echo ""
 
     # Step 5: Verify and Update Production URLs
     print_header "Step 5: Verifying Production URLs"

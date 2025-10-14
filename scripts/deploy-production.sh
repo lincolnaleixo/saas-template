@@ -300,17 +300,9 @@ main() {
 
     print_info "Reading environment variables from .env.local..."
 
-    # Initialize env state tracking
+    # Initialize env state tracking (bash 3.x compatible)
     ENV_STATE_FILE=".vercel/.env-state"
     mkdir -p .vercel
-
-    # Load existing env state (hashes only, no actual values)
-    declare -A env_state
-    if [ -f "$ENV_STATE_FILE" ]; then
-        while IFS='=' read -r key value; do
-            env_state["$key"]="$value"
-        done < "$ENV_STATE_FILE"
-    fi
 
     # Function to get hash of a value (for comparison without storing secrets)
     get_value_hash() {
@@ -318,20 +310,31 @@ main() {
         echo -n "$value" | shasum -a 256 | awk '{print $1}'
     }
 
+    # Function to get stored hash for a variable
+    get_stored_hash() {
+        local var_name=$1
+        if [ -f "$ENV_STATE_FILE" ]; then
+            grep "^${var_name}=" "$ENV_STATE_FILE" 2>/dev/null | cut -d'=' -f2
+        fi
+    }
+
     # Function to check if env var needs updating
     needs_update() {
         local var_name=$1
         local var_value=$2
         local current_hash
+        local stored_hash
+
         current_hash=$(get_value_hash "$var_value")
+        stored_hash=$(get_stored_hash "$var_name")
 
         # If no previous hash, needs update
-        if [ -z "${env_state[$var_name]}" ]; then
+        if [ -z "$stored_hash" ]; then
             return 0
         fi
 
         # Compare hashes
-        if [ "${env_state[$var_name]}" != "$current_hash" ]; then
+        if [ "$stored_hash" != "$current_hash" ]; then
             return 0
         fi
 
@@ -344,15 +347,20 @@ main() {
         local var_value=$2
         local hash
         hash=$(get_value_hash "$var_value")
-        env_state["$var_name"]="$hash"
+
+        # Remove old entry if exists, then append new one
+        if [ -f "$ENV_STATE_FILE" ]; then
+            grep -v "^${var_name}=" "$ENV_STATE_FILE" > "${ENV_STATE_FILE}.tmp" 2>/dev/null || true
+            mv "${ENV_STATE_FILE}.tmp" "$ENV_STATE_FILE"
+        fi
+        echo "$var_name=$hash" >> "$ENV_STATE_FILE"
     }
 
-    # Function to persist env state to file
+    # Function to persist env state to file (no-op, we save inline now)
     persist_env_state() {
-        > "$ENV_STATE_FILE"
-        for key in "${!env_state[@]}"; do
-            echo "$key=${env_state[$key]}" >> "$ENV_STATE_FILE"
-        done
+        if [ -f "$ENV_STATE_FILE" ]; then
+            print_success "Environment variable state saved to $ENV_STATE_FILE"
+        fi
     }
 
     # Function to set Vercel env var (with change detection)

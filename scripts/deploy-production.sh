@@ -300,7 +300,62 @@ main() {
 
     print_info "Reading environment variables from .env.local..."
 
-    # Function to set Vercel env var
+    # Initialize env state tracking
+    ENV_STATE_FILE=".vercel/.env-state"
+    mkdir -p .vercel
+
+    # Load existing env state (hashes only, no actual values)
+    declare -A env_state
+    if [ -f "$ENV_STATE_FILE" ]; then
+        while IFS='=' read -r key value; do
+            env_state["$key"]="$value"
+        done < "$ENV_STATE_FILE"
+    fi
+
+    # Function to get hash of a value (for comparison without storing secrets)
+    get_value_hash() {
+        local value=$1
+        echo -n "$value" | shasum -a 256 | awk '{print $1}'
+    }
+
+    # Function to check if env var needs updating
+    needs_update() {
+        local var_name=$1
+        local var_value=$2
+        local current_hash
+        current_hash=$(get_value_hash "$var_value")
+
+        # If no previous hash, needs update
+        if [ -z "${env_state[$var_name]}" ]; then
+            return 0
+        fi
+
+        # Compare hashes
+        if [ "${env_state[$var_name]}" != "$current_hash" ]; then
+            return 0
+        fi
+
+        return 1
+    }
+
+    # Function to save env var hash
+    save_env_hash() {
+        local var_name=$1
+        local var_value=$2
+        local hash
+        hash=$(get_value_hash "$var_value")
+        env_state["$var_name"]="$hash"
+    }
+
+    # Function to persist env state to file
+    persist_env_state() {
+        > "$ENV_STATE_FILE"
+        for key in "${!env_state[@]}"; do
+            echo "$key=${env_state[$key]}" >> "$ENV_STATE_FILE"
+        done
+    }
+
+    # Function to set Vercel env var (with change detection)
     set_vercel_env() {
         local var_name=$1
         local var_value=$2
@@ -311,11 +366,17 @@ main() {
             return
         fi
 
-        print_info "Setting $var_name in Vercel ($env_type)..."
-        echo "$var_value" | vercel env add "$var_name" "$env_type" --force &>/dev/null || {
-            print_warning "Failed to set $var_name (might already exist)"
-        }
-        print_success "Set $var_name"
+        # Check if update is needed
+        if needs_update "$var_name" "$var_value"; then
+            print_info "Setting $var_name in Vercel ($env_type)..."
+            echo "$var_value" | vercel env add "$var_name" "$env_type" --force &>/dev/null || {
+                print_warning "Failed to set $var_name (might already exist)"
+            }
+            print_success "Set $var_name"
+            save_env_hash "$var_name" "$var_value"
+        else
+            print_info "$var_name already up to date (skipped)"
+        fi
     }
 
     # Get Convex Admin Key
@@ -424,6 +485,10 @@ main() {
         fi
     done
 
+    # Persist environment variable state
+    persist_env_state
+    print_success "Environment variable state saved to $ENV_STATE_FILE"
+
     # Step 4: Deploy to Vercel
     print_header "Step 4: Deploying to Vercel"
 
@@ -476,6 +541,7 @@ main() {
             print_info "Updating production URLs in Vercel..."
             set_vercel_env "NEXTAUTH_URL" "$FINAL_URL" "production"
             set_vercel_env "NEXT_PUBLIC_APP_URL" "$FINAL_URL" "production"
+            persist_env_state
             print_success "Production URLs updated in Vercel"
 
             if [ "$EXISTING_PROD_URL" != "$FINAL_URL" ] && [ -n "$EXISTING_PROD_URL" ]; then

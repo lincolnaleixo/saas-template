@@ -375,12 +375,38 @@ main() {
         print_warning "Skipping CONVEX_ADMIN_KEY (not provided)"
     fi
 
+    # Set production URLs before deployment
+    print_info "Configuring production URLs..."
+
+    # Try to get existing Vercel production URL
+    EXISTING_PROD_URL=$(vercel inspect --prod 2>/dev/null | grep "url:" | head -1 | awk '{print $2}' || echo "")
+
+    if [ -n "$EXISTING_PROD_URL" ]; then
+        print_success "Found existing production URL: $EXISTING_PROD_URL"
+        set_vercel_env "NEXTAUTH_URL" "$EXISTING_PROD_URL" "production"
+        set_vercel_env "NEXT_PUBLIC_APP_URL" "$EXISTING_PROD_URL" "production"
+    else
+        # Check if they're in .env.local
+        NEXTAUTH_URL_LOCAL=$(load_env_var "NEXTAUTH_URL")
+        NEXT_PUBLIC_APP_URL_LOCAL=$(load_env_var "NEXT_PUBLIC_APP_URL")
+
+        if [ -n "$NEXTAUTH_URL_LOCAL" ]; then
+            set_vercel_env "NEXTAUTH_URL" "$NEXTAUTH_URL_LOCAL" "production"
+        else
+            print_warning "NEXTAUTH_URL not set - will be configured after first deployment"
+        fi
+
+        if [ -n "$NEXT_PUBLIC_APP_URL_LOCAL" ]; then
+            set_vercel_env "NEXT_PUBLIC_APP_URL" "$NEXT_PUBLIC_APP_URL_LOCAL" "production"
+        else
+            print_warning "NEXT_PUBLIC_APP_URL not set - will be configured after first deployment"
+        fi
+    fi
+
     # Optional variables
     print_info "Setting optional environment variables (if present)..."
 
     optional_vars=(
-        "NEXTAUTH_URL"
-        "NEXT_PUBLIC_APP_URL"
         "RESEND_API_KEY"
         "EMAIL_FROM"
         "STRIPE_SECRET_KEY"
@@ -398,7 +424,7 @@ main() {
         fi
     done
 
-    # Step 4: Deploy to Vercel (moved before getting URL)
+    # Step 4: Deploy to Vercel
     print_header "Step 4: Deploying to Vercel"
 
     print_info "Building and deploying to production..."
@@ -417,8 +443,8 @@ main() {
     fi
     print_success "Successfully deployed to Vercel!"
 
-    # Step 5: Get Production URL from deployment
-    print_header "Step 5: Configuring Production URLs"
+    # Step 5: Verify and Update Production URLs
+    print_header "Step 5: Verifying Production URLs"
 
     print_info "Detecting Vercel production domain..."
 
@@ -444,15 +470,21 @@ main() {
         print_success "Production URL: $FINAL_URL"
     fi
 
-    # Always set NEXTAUTH_URL and NEXT_PUBLIC_APP_URL to production domain
+    # Update NEXTAUTH_URL and NEXT_PUBLIC_APP_URL if they weren't set before or are different
     if [ -n "$FINAL_URL" ]; then
-        print_info "Setting NEXTAUTH_URL to production domain..."
-        set_vercel_env "NEXTAUTH_URL" "$FINAL_URL" "production"
+        if [ "$EXISTING_PROD_URL" != "$FINAL_URL" ]; then
+            print_info "Updating production URLs in Vercel..."
+            set_vercel_env "NEXTAUTH_URL" "$FINAL_URL" "production"
+            set_vercel_env "NEXT_PUBLIC_APP_URL" "$FINAL_URL" "production"
+            print_success "Production URLs updated in Vercel"
 
-        print_info "Setting NEXT_PUBLIC_APP_URL to production domain..."
-        set_vercel_env "NEXT_PUBLIC_APP_URL" "$FINAL_URL" "production"
-
-        print_success "Production URLs configured in Vercel"
+            if [ "$EXISTING_PROD_URL" != "$FINAL_URL" ] && [ -n "$EXISTING_PROD_URL" ]; then
+                print_warning "Production URL changed! You may need to redeploy for the new URLs to take effect."
+                print_info "Run: vercel --prod --yes"
+            fi
+        else
+            print_success "Production URLs already correctly configured"
+        fi
     fi
 
     # Step 6: Post-deployment instructions

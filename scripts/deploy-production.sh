@@ -328,8 +328,13 @@ main() {
         print_info "The Convex Admin Key is required for NextAuth integration"
         echo ""
         print_info "Opening Convex Dashboard in your browser..."
-        print_info "→ Select your deployment → Settings → Deploy keys"
-        print_info "→ Copy the 'Deploy key' value"
+        print_info "Follow these steps to get your Deploy Key:"
+        print_info "  1. Select your project"
+        print_info "  2. Click on 'Production' environment"
+        print_info "  3. Go to Settings → URL & Deploy Key"
+        print_info "  4. Under 'Deploy Keys' section"
+        print_info "  5. Click 'Generate Production Deploy Key' if needed"
+        print_info "  6. Copy the generated key"
         echo ""
 
         # Open browser

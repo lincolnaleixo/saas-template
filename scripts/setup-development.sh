@@ -934,13 +934,27 @@ run_convex_setup() {
   echo ""
   print_header "Convex Admin Key (for production deployment)"
   print_info "The Convex Admin Key is required for NextAuth in production"
-  print_info "You can get it from: https://dashboard.convex.dev"
-  print_info "→ Select your deployment → Settings → Deploy keys"
-  print_info "→ Copy the 'Deploy key' value"
   echo ""
 
   if prompt_confirm "Do you want to add the Convex Admin Key now?" "n"; then
-    read -r -p "Enter your Convex Admin Key: " convex_admin_key_input
+    print_info "Opening Convex Dashboard in your browser..."
+    print_info "→ Select your deployment → Settings → Deploy keys"
+    print_info "→ Copy the 'Deploy key' value"
+    echo ""
+
+    # Open browser
+    if command -v open &> /dev/null; then
+      open "https://dashboard.convex.dev" 2>/dev/null || true
+    elif command -v xdg-open &> /dev/null; then
+      xdg-open "https://dashboard.convex.dev" 2>/dev/null || true
+    elif command -v start &> /dev/null; then
+      start "https://dashboard.convex.dev" 2>/dev/null || true
+    else
+      print_info "Visit: https://dashboard.convex.dev"
+    fi
+
+    echo ""
+    read -r -p "Paste the Deploy key and press Enter: " convex_admin_key_input
     convex_admin_key=$(echo "$convex_admin_key_input" | tr -d '\r\n')
     if [ -n "$convex_admin_key" ]; then
       if grep -q "^CONVEX_ADMIN_KEY=" .env.local 2>/dev/null; then

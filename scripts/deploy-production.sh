@@ -326,11 +326,25 @@ main() {
         echo ""
         print_warning "CONVEX_ADMIN_KEY not found in .env.local"
         print_info "The Convex Admin Key is required for NextAuth integration"
-        print_info "You can find it in your Convex Dashboard:"
-        print_info "→ https://dashboard.convex.dev"
+        echo ""
+        print_info "Opening Convex Dashboard in your browser..."
         print_info "→ Select your deployment → Settings → Deploy keys"
         print_info "→ Copy the 'Deploy key' value"
         echo ""
+
+        # Open browser
+        if command_exists open; then
+            open "https://dashboard.convex.dev" 2>/dev/null || true
+        elif command_exists xdg-open; then
+            xdg-open "https://dashboard.convex.dev" 2>/dev/null || true
+        elif command_exists start; then
+            start "https://dashboard.convex.dev" 2>/dev/null || true
+        else
+            print_info "Visit: https://dashboard.convex.dev"
+        fi
+
+        echo ""
+        print_info "Paste the Deploy key below and press Enter:"
         read -r CONVEX_ADMIN_KEY_INPUT
         CONVEX_ADMIN_KEY=$(echo "$CONVEX_ADMIN_KEY_INPUT" | tr -d '\r\n')
 

@@ -940,7 +940,8 @@ run_convex_setup() {
   echo ""
 
   if prompt_confirm "Do you want to add the Convex Admin Key now?" "n"; then
-    read -p "Enter your Convex Admin Key: " convex_admin_key
+    read -r -p "Enter your Convex Admin Key: " convex_admin_key_input
+    convex_admin_key=$(echo "$convex_admin_key_input" | tr -d '\r\n')
     if [ -n "$convex_admin_key" ]; then
       if grep -q "^CONVEX_ADMIN_KEY=" .env.local 2>/dev/null; then
         # Update existing

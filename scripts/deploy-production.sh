@@ -279,7 +279,8 @@ main() {
     if [ -z "$PROD_CONVEX_URL" ]; then
         print_warning "Could not auto-detect Convex URL"
         print_info "Please check your Convex dashboard for the production URL"
-        read -p "Enter your production Convex URL (e.g., https://your-deployment.convex.cloud): " PROD_CONVEX_URL
+        read -r -p "Enter your production Convex URL (e.g., https://your-deployment.convex.cloud): " PROD_CONVEX_URL_INPUT
+        PROD_CONVEX_URL=$(echo "$PROD_CONVEX_URL_INPUT" | tr -d '\r\n')
     else
         print_success "Production Convex URL: $PROD_CONVEX_URL"
     fi
@@ -330,7 +331,8 @@ main() {
         print_info "→ Select your deployment → Settings → Deploy keys"
         print_info "→ Copy the 'Deploy key' value"
         echo ""
-        read -p "Enter your Convex Admin Key (or press Enter to skip): " CONVEX_ADMIN_KEY
+        read -r CONVEX_ADMIN_KEY_INPUT
+        CONVEX_ADMIN_KEY=$(echo "$CONVEX_ADMIN_KEY_INPUT" | tr -d '\r\n')
 
         # Save to .env.local for future use
         if [ -n "$CONVEX_ADMIN_KEY" ]; then
@@ -417,7 +419,8 @@ main() {
     if [ -z "$FINAL_URL" ]; then
         print_warning "Could not auto-detect Vercel domain"
         print_info "You can find it in your Vercel dashboard"
-        read -p "Enter your Vercel production URL (e.g., https://your-app.vercel.app): " FINAL_URL
+        read -r -p "Enter your Vercel production URL (e.g., https://your-app.vercel.app): " FINAL_URL_INPUT
+        FINAL_URL=$(echo "$FINAL_URL_INPUT" | tr -d '\r\n')
     else
         print_success "Production URL: $FINAL_URL"
     fi
